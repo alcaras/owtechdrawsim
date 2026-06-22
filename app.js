@@ -2,7 +2,7 @@
 // game-like screen: a hand of cards you pick from, a Next-turn science tick, the
 // Scholar redraw, a buildable Oracle, and a turn-by-turn history.
 import { DrawEngine } from './engine.js';
-import { makeScienceCurve } from './science.js';
+import { makeScienceModel, makeScienceCurve, scienceBreakdown } from './science.js';
 import { parseOwttPlan, encodeOwttOrder, simulatePlan, optimizePlan } from './planner.js';
 
 const TD = window.techData;
@@ -89,7 +89,7 @@ function startGame(nationId) {
   const raw = $('#pickSeed').value.trim();
   const seed = raw === '' ? Math.floor(Math.random() * 0x100000000) : (parseInt(raw, 10) || 1);
   const scholar = $('#pickScholar').checked;
-  engine = new DrawEngine({ techs: TD.techs, bonusTechs: TD.bonusTechs, scienceCurve: makeScienceCurve(nationId) });
+  engine = new DrawEngine({ techs: TD.techs, bonusTechs: TD.bonusTechs, scienceCurve: makeScienceModel(nationId) });
   engine.start({
     nation: nationId,
     startingTechs: ND.startingTechs[nationId] || [],
@@ -179,7 +179,13 @@ function render() {
   $('#topCrest').src = crestIcon(c.crest);
   $('#topNation').textContent = nationName(v.nation);
   $('#statTurn').textContent = v.turn;
-  $('#statSpt').textContent = '+' + v.sciencePerTurn;
+  const bd = scienceBreakdown(v.nation, v.turn, engine);
+  if (bd.bonus > 0) {
+    const tip = `base ${bd.base} + ${bd.contribs.map((c) => `${techName(c.id)} +${c.amount.toFixed(1)}`).join(', ')}`;
+    $('#statSpt').innerHTML = `+${v.sciencePerTurn}<span class="sci-bonus" title="${tip}">⚛ +${bd.bonus}</span>`;
+  } else {
+    $('#statSpt').textContent = '+' + v.sciencePerTurn;
+  }
   $('#statTotal').textContent = v.totalScience;
   $('#seedLabel').textContent = 'seed ' + v.seed;
 

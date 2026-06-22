@@ -5,6 +5,7 @@
 
 import { readFileSync } from 'node:fs';
 import { DrawEngine, MAX_TECHS_AVAILABLE } from './engine.js';
+import { makeScienceModel, scienceBreakdown } from './science.js';
 
 // --- load tech-data.js (it assigns window.*) ---
 const win = {};
@@ -227,6 +228,20 @@ section('snapshot / restore (undo) round-trips state and RNG');
   ok(e.turn === t0 && e.totalScience === sci0 && JSON.stringify(e.hand) === hand0, 'restore rewinds to the exact snapshot');
   const r2 = adv(e);
   ok(r1 === r2, 'restored RNG replays identical draws');
+}
+
+section('endogenous science responds to which science techs you have');
+{
+  const model = makeScienceModel('NATION_ROME');
+  const fake = (techs) => ({ state: new Map(techs.map((t) => [t, 'acquired'])) });
+  const base = model(20, fake([]));
+  const withDiv = model(20, fake(['TECH_DIVINATION']));
+  const withSch = model(20, fake(['TECH_SCHOLARSHIP']));
+  ok(withDiv > base, `Divination raises science/turn (${base} -> ${withDiv})`);
+  ok(withSch > withDiv, `Scholarship raises it more (${withSch} > ${withDiv})`);
+  const bd = scienceBreakdown('NATION_ROME', 20, fake(['TECH_SCHOLARSHIP']));
+  ok(bd.bonus > 0 && bd.contribs.some((c) => c.id === 'TECH_SCHOLARSHIP'), 'breakdown attributes the bonus to the tech');
+  ok(model(20, fake([])) === scienceBreakdown('NATION_ROME', 20, fake([])).total, 'model total matches breakdown total');
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

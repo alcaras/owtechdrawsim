@@ -14,6 +14,8 @@ export const scienceCurves = {
   AKSUM:     [[5,19.0],[10,21.7],[15,23.1],[20,27.6],[25,29.4],[30,33.5],[35,38.4],[40,47.6],[45,47.1],[50,43.4],[55,54.1],[60,62.9]],
 };
 
+import { scienceTechs, scienceWeights, scienceProvenance, avgHas } from './science-model.js';
+
 // Map an owtt nation id (NATION_ROME) to an owglick key; fall back to ALL.
 export function curveKeyFor(nationId) {
   if (!nationId) return 'ALL';
@@ -26,6 +28,52 @@ export function curveKeyFor(nationId) {
 export function makeScienceCurve(nationId) {
   const pts = scienceCurves[curveKeyFor(nationId)];
   return (turn) => Math.max(1, Math.round(rateAt(pts, turn)));
+}
+
+// Endogenous science model: the per-nation baseline plus contributions from the
+// science-moving techs the player has actually researched, centered on the average
+// possession so an average path reproduces the baseline curve. See gen_science_model.py.
+export function makeScienceModel(nationId) {
+  const pts = scienceCurves[curveKeyFor(nationId)];
+  return (turn, engine) => Math.max(1, Math.round(rateAt(pts, turn) + techBonus(turn, engine)));
+}
+
+function techBonus(turn, engine) {
+  if (!engine || !engine.state) return 0;
+  let b = 0;
+  for (const t of scienceTechs) {
+    const has = engine.state.get(t) === 'acquired' ? 1 : 0;
+    b += (scienceWeights[t] || 0) * (has - clampInterp(avgHas[t], turn));
+  }
+  return b;
+}
+
+// Breakdown for the UI: baseline, per-tech contributions you currently have, total.
+export function scienceBreakdown(nationId, turn, engine) {
+  const pts = scienceCurves[curveKeyFor(nationId)];
+  const base = rateAt(pts, turn);
+  const contribs = [];
+  for (const t of scienceTechs) {
+    const has = engine && engine.state && engine.state.get(t) === 'acquired';
+    if (!has) continue;
+    contribs.push({ id: t, amount: (scienceWeights[t] || 0) * (1 - clampInterp(avgHas[t], turn)), src: scienceProvenance[t] });
+  }
+  const total = Math.max(1, Math.round(rateAt(pts, turn) + techBonus(turn, engine)));
+  return { base: Math.round(base), total, bonus: total - Math.round(base), contribs };
+}
+
+// Linear interpolation for [[turn,val]] points with flat (clamped) extrapolation.
+function clampInterp(pts, turn) {
+  if (!pts || !pts.length) return 0;
+  if (turn <= pts[0][0]) return pts[0][1];
+  if (turn >= pts[pts.length - 1][0]) return pts[pts.length - 1][1];
+  for (let i = 1; i < pts.length; i++) {
+    if (turn <= pts[i][0]) {
+      const [t0, v0] = pts[i - 1], [t1, v1] = pts[i];
+      return v0 + ((v1 - v0) / (t1 - t0)) * (turn - t0);
+    }
+  }
+  return pts[pts.length - 1][1];
 }
 
 // owglick's earliest sample is turn 5; before that, per-nation differences aren't

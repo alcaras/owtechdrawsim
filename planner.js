@@ -3,15 +3,15 @@
 // A "tech order" can't be followed literally — you only research what's in your
 // hand. So an order is a PRIORITY: on each decision point the auto-player takes the
 // highest-priority wanted card present (bonus before main, since bonuses burn); when
-// nothing wanted is in hand it DIGS — redraw with Scholar (banks science, ~free), or
-// research the cheapest card to cycle to a new hand without Scholar.
+// nothing wanted is in hand it DIGS — a Scholar redraw for an extra look, else it
+// must research the cheapest card to cycle to a new hand (you always research something).
 //
 // Because draws are random, everything is Monte-Carlo. The optimizer scores every
 // candidate order on the SAME seed set (Common Random Numbers) so differences are
 // real, not luck, then hill-climbs from a few smart seed orders.
 
 import { DrawEngine } from './engine.js';
-import { makeScienceCurve } from './science.js';
+import { makeScienceModel } from './science.js';
 
 // ---------- parse an owtt plan (URL / query / index list / id list) ----------
 export function parseOwttPlan(input, TD, NL) {
@@ -158,7 +158,6 @@ export function autoPlay(eng, order, config) {
     if (!eng.currentResearch) {
       const pick = chooseResearch(eng, order, rank, config);
       if (pick != null) eng.pickResearch(pick);
-      // Scholar with nothing wanted: bank the turn (no pick) and redraw next turn.
     }
     eng.nextTurn();
     for (const a of eng.acquiredOrder) if (acquiredTurn[a.id] == null) acquiredTurn[a.id] = a.turn;
@@ -190,7 +189,7 @@ export function simulatePlan({ TD, ND, nation, targets, config, seeds }) {
   const byId = buildIndex(TD);
   const startingSet = new Set(ND.startingTechs[nation] || []);
   const order = expandPlan(targets, byId, startingSet);
-  const curve = config.curve || makeScienceCurve(nation);
+  const curve = config.curve || makeScienceModel(nation);
   const runs = seeds.map((s) => runOnce(TD, ND, nation, order, { ...config, curve }, s));
 
   const done = runs.filter((r) => r.done);
@@ -226,7 +225,7 @@ function scoreOrder(TD, ND, nation, targets, config, seeds, byId, startingSet) {
 export function optimizePlan({ TD, ND, nation, targets, config, seeds, maxIters = 400 }) {
   const byId = buildIndex(TD);
   const startingSet = new Set(ND.startingTechs[nation] || []);
-  const curve = config.curve || makeScienceCurve(nation);
+  const curve = config.curve || makeScienceModel(nation);
   const cfg = { ...config, curve };
   const sc = (t) => scoreOrder(TD, ND, nation, t, cfg, seeds, byId, startingSet);
 

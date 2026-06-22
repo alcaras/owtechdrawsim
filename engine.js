@@ -264,7 +264,7 @@ export class DrawEngine {
   // all into the current research, then handle completion. Requires a current pick.
   nextTurn() {
     if (!this.canEndTurn()) return false;
-    const gain = this.scienceCurve(this.turn);
+    const gain = this.scienceCurve(this.turn, this);
     this.totalScience += gain;
     const pool = gain + this.overflow;          // carry collapses onto the chosen tech
     this.overflow = 0;
@@ -355,7 +355,7 @@ export class DrawEngine {
       seed: this.seed,
       turn: this.turn,
       totalScience: this.totalScience,
-      sciencePerTurn: this.scienceCurve(this.turn),
+      sciencePerTurn: this.scienceCurve(this.turn, this),
       overflow: this.overflow,
       handSize: this.handSize(),
       oracleActive: this.oracleActive(),
