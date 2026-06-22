@@ -98,6 +98,8 @@ function startGame(nationId) {
   });
   window.__engine = engine; // exposed for debugging / headless drivers
   undoStack = []; redoStack = [];
+  // Add a history entry so the browser Back button returns to the nation picker.
+  history.pushState({ screen: 'game' }, '');
   $('#picker').hidden = true;
   $('#game').hidden = false;
   $('#scholarToggle').checked = scholar;
@@ -111,11 +113,21 @@ function applyTheme(nationId) {
   document.documentElement.style.setProperty('--nation-accent', c.accent);
 }
 
-function restart() {
+// Pure UI reset back to the nation picker (no history side effects).
+function showPicker() {
   engine = null;
+  undoStack = []; redoStack = [];
   $('#game').hidden = true;
   $('#picker').hidden = false;
 }
+// Restart button: pop the game history entry (so Back stays in sync), else just show.
+function restart() {
+  if (history.state && history.state.screen === 'game') history.back();
+  else showPicker();
+}
+// Browser Back/Forward: any navigation off the game returns to the picker.
+window.addEventListener('popstate', () => { if (!$('#game').hidden) showPicker(); });
+if (!history.state) history.replaceState({ screen: 'picker' }, '');
 
 // ---------- render ----------
 function unlockPills(unlocks) {
