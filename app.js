@@ -3,6 +3,7 @@
 // Scholar redraw, a buildable Oracle, and a turn-by-turn history.
 import { DrawEngine } from './engine.js';
 import { makeScienceCurve } from './science.js';
+import { parseOwttPlan, encodeOwttOrder, simulatePlan, optimizePlan } from './planner.js';
 
 const TD = window.techData;
 const ND = window.nationData;
@@ -218,5 +219,119 @@ document.addEventListener('keydown', (e) => {
     engine.redraw(); render();
   }
 });
+
+// ---------- Plan & Optimize modal ----------
+const techName = (id) => (engine?.get(id)?.name) || (TD.techs.find((t) => t.id === id) || TD.bonusTechs.find((b) => b.id === id) || {}).name || id;
+const techCost = (id) => (TD.techs.find((t) => t.id === id) || TD.bonusTechs.find((b) => b.id === id) || {}).cost ?? 0;
+const isBonusId = (id) => TD.bonusTechs.some((b) => b.id === id);
+
+function planNation(parsed) {
+  return parsed.nation || (engine && engine.nation) || NATIONS[0];
+}
+function planConfig() {
+  const oracle = parseInt($('#planOracle').value, 10);
+  return {
+    scholar: $('#planScholar').checked,
+    oracleTurn: Number.isFinite(oracle) && oracle > 0 ? oracle : null,
+    maxTurns: 400,
+  };
+}
+function planSeeds() {
+  const n = Math.max(20, Math.min(1000, parseInt($('#planRuns').value, 10) || 160));
+  return Array.from({ length: n }, (_, i) => i + 1);
+}
+
+function openPlan() {
+  // prefill from current game
+  if (engine) {
+    $('#planScholar').checked = engine.scholar;
+    if (engine.oracleBuiltTurn != null) $('#planOracle').value = engine.oracleBuiltTurn;
+  }
+  $('#planModal').hidden = false;
+  $('#planInput').focus();
+}
+function closePlan() { $('#planModal').hidden = true; }
+
+function withCompute(fn) {
+  $('#planStatus').textContent = 'computing…';
+  $('#planSimBtn').disabled = $('#planOptBtn').disabled = true;
+  setTimeout(() => {
+    try { fn(); }
+    catch (e) { $('#planResults').innerHTML = `<div class="plan-err">${escapeHtml(e.message)}</div>`; }
+    finally { $('#planStatus').textContent = ''; $('#planSimBtn').disabled = $('#planOptBtn').disabled = false; }
+  }, 30);
+}
+
+function getPlanTargets() {
+  const parsed = parseOwttPlan($('#planInput').value, TD, NATIONS);
+  const nation = planNation(parsed);
+  $('#planNationNote').textContent = `Nation: ${nationName(nation)}${parsed.nation ? ' (from plan)' : ' (current)'}`;
+  if (!parsed.order.length) throw new Error('No techs parsed — paste an owtt URL, a ?o= list, or tech ids.');
+  return { targets: parsed.order, nation };
+}
+
+function pillRow(ids) {
+  return `<div class="seq">${ids.map((id, i) =>
+    `<span class="seq-item${isBonusId(id) ? ' seq-bonus' : ''}"><b>${i + 1}</b>${isBonusId(id) ? '★' : ''}${escapeHtml(techName(id))}<i>${techCost(id)}</i></span>`
+  ).join('')}</div>`;
+}
+
+function statsBlock(s) {
+  const c = s.completion;
+  const rangeTxt = c.median != null ? `${c.median} turns <span class="rng">(p10 ${c.p10} – p90 ${c.p90})</span>` : '—';
+  const warn = s.lostBonusRate > 0.005 ? `<div class="plan-warn">⚠ Loses an on-plan bonus card in ${(s.lostBonusRate * 100).toFixed(0)}% of runs (two on-plan bonuses can share a hand — one is trashed).</div>` : '';
+  const perRows = Object.entries(s.perTarget).map(([id, p]) =>
+    `<tr><td class="pt-name">${isBonusId(id) ? '★' : ''}${escapeHtml(techName(id))}</td><td>${p.median ?? '—'}</td><td class="pt-rng">${p.p10 ?? '—'}–${p.p90 ?? '—'}</td></tr>`
+  ).join('');
+  return `
+    <div class="stat-grid">
+      <div><span class="sg-num">${rangeTxt}</span><span class="sg-lbl">Completion (median)</span></div>
+      <div><span class="sg-num">${(s.successRate * 100).toFixed(0)}%</span><span class="sg-lbl">Success rate</span></div>
+      <div><span class="sg-num">${s.wasted.median ?? 0}</span><span class="sg-lbl">Wasted science (median)</span></div>
+      <div><span class="sg-num">${s.runs}</span><span class="sg-lbl">Runs</span></div>
+    </div>
+    ${warn}
+    <table class="pt-table"><thead><tr><th>Tech</th><th>median turn</th><th>p10–p90</th></tr></thead><tbody>${perRows}</tbody></table>`;
+}
+
+function runSimulate() {
+  withCompute(() => {
+    const { targets, nation } = getPlanTargets();
+    const s = simulatePlan({ TD, ND, nation, targets, config: planConfig(), seeds: planSeeds() });
+    $('#planResults').innerHTML = `
+      <h3>Simulation — your order</h3>
+      <div class="seq-label">Priority (prereqs auto-inserted):</div>
+      ${pillRow(s.order)}
+      ${statsBlock(s)}`;
+  });
+}
+
+function runOptimize() {
+  withCompute(() => {
+    const { targets, nation } = getPlanTargets();
+    const config = planConfig();
+    const seeds = planSeeds();
+    const opt = optimizePlan({ TD, ND, nation, targets, config, seeds, maxIters: 250 });
+    const before = simulatePlan({ TD, ND, nation, targets: opt.baseline.targets, config, seeds });
+    const after = simulatePlan({ TD, ND, nation, targets: opt.best.targets, config, seeds });
+    const saved = (before.completion.mean ?? 0) - (after.completion.mean ?? 0);
+    const owtt = encodeOwttOrder(opt.best.order, TD, nation, NATIONS);
+    $('#planResults').innerHTML = `
+      <h3>Optimized order ${saved > 0.5 ? `<span class="saved">− ${saved.toFixed(1)} turns faster</span>` : '<span class="saved flat">≈ already near-optimal</span>'}</h3>
+      <div class="seq-label">Recommended priority:</div>
+      ${pillRow(opt.best.order)}
+      ${statsBlock(after)}
+      <div class="owtt-out"><span>Paste back into owtt:</span><code id="owttCode">${escapeHtml(owtt)}</code><button id="owttCopy" class="copy-btn">Copy</button></div>
+      <details class="cmp"><summary>vs. your original order (${before.completion.mean?.toFixed(1)} turns mean)</summary>${pillRow(before.order)}${statsBlock(before)}</details>`;
+    const copyBtn = $('#owttCopy');
+    if (copyBtn) copyBtn.addEventListener('click', () => { navigator.clipboard?.writeText(owtt); copyBtn.textContent = 'Copied ✓'; });
+  });
+}
+
+$('#planBtn').addEventListener('click', openPlan);
+$('#planClose').addEventListener('click', closePlan);
+$('#planModal').addEventListener('click', (e) => { if (e.target.id === 'planModal') closePlan(); });
+$('#planSimBtn').addEventListener('click', runSimulate);
+$('#planOptBtn').addEventListener('click', runOptimize);
 
 buildPicker();

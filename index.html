@@ -38,6 +38,7 @@
       <div class="toggles">
         <label class="switch"><input type="checkbox" id="scholarToggle" /><span>Scholar</span></label>
         <button id="oracleBtn" class="oracle-btn">Build Oracle <span class="oracle-plus">+1 card</span></button>
+        <button id="planBtn" class="plan-btn" title="Simulate &amp; optimize a research plan">📋 Plan &amp; Optimize</button>
         <button id="restartBtn2" class="restart-btn" title="Restart">⟲ Restart</button>
       </div>
     </header>
@@ -83,6 +84,32 @@
         <div class="pile-body" id="discardList"></div>
       </details>
     </aside>
+  </div>
+
+  <!-- Plan & Optimize modal -->
+  <div id="planModal" class="modal" hidden>
+    <div class="modal-card">
+      <header class="modal-head">
+        <h2>Plan &amp; Optimize</h2>
+        <button id="planClose" class="modal-close" aria-label="Close">×</button>
+      </header>
+      <div class="modal-body">
+        <p class="modal-intro">Paste an <strong>owtt</strong> share URL (or a list of tech ids / owtt <code>?o=</code> indices). The plan is simulated the way the game deals cards — priority order, redraw digging, bonus burns — over many random draws.</p>
+        <textarea id="planInput" class="plan-input" rows="3" placeholder="https://…/?n=10&o=13,14,7,-8   — or —   TECH_PHALANX, TECH_SPOKED_WHEEL"></textarea>
+        <div class="plan-config">
+          <label class="opt"><input type="checkbox" id="planScholar" /> Scholar</label>
+          <label class="opt">Oracle on turn <input type="number" id="planOracle" class="seed-input" placeholder="never" min="1" /></label>
+          <label class="opt">Runs <input type="number" id="planRuns" class="seed-input" value="160" min="20" max="1000" /></label>
+          <span id="planNationNote" class="plan-nation-note"></span>
+        </div>
+        <div class="plan-actions">
+          <button id="planSimBtn" class="plan-go">▶ Simulate plan</button>
+          <button id="planOptBtn" class="plan-go alt">✨ Optimize order</button>
+          <span id="planStatus" class="plan-status"></span>
+        </div>
+        <div id="planResults" class="plan-results"></div>
+      </div>
+    </div>
   </div>
 
   <script src="tech-data.js"></script>
