@@ -59,7 +59,7 @@ export class DrawEngine {
    * @param {number}      opts.seed
    * @param {boolean}     opts.scholar  whether the Scholar trait is active (toggle)
    */
-  start({ nation = null, startingTechs = [], seed = 1, scholar = false } = {}) {
+  start({ nation = null, startingTechs = [], seed = 1, scholar = false, freeTechs = 0 } = {}) {
     this.nation = nation;
     this.seed = seed >>> 0;
     this.rng = mulberry32(this.seed);
@@ -77,14 +77,49 @@ export class DrawEngine {
     // state machine
     this.state = new Map();          // id -> 'deck'|'available'|'passed'|'trashed'|'acquired'
     for (const id of this.byId.keys()) this.state.set(id, 'deck');
-    const starts = new Set(startingTechs);
-    for (const id of starts) if (this.state.has(id)) this.state.set(id, 'acquired');
+    // Starting techs are NOT acquired yet — the opening hand (initNation) draws from
+    // roots first, THEN starting techs are acquired. Acquiring early would wrongly make
+    // their children eligible during phase 1.
+    const starts = new Set(startingTechs.filter((id) => this.state.has(id)));
+    this._startingTechs = starts;
 
     this.hand = [];
     this._log('start', `Playing ${nation || 'no nation'} — seed ${this.seed}.`);
     if (starts.size) this._log('start', `Starting techs: ${[...starts].map((id) => this.get(id)?.name || id).join(', ')}.`);
-    this._dealHand();
+    this.freeTechs = freeTechs;
+    this._initHand();
     return this;
+  }
+
+  // The opening hand is special (Player.cs initNation): an over-fill of
+  // (hand size + 1) drawn with NO reshuffle and NO min-non-trashable rule, then —
+  // starting techs already being acquired — a top-up of (hand size - available - 1).
+  // Starting techs are pre-acquired here, which is equivalent to the game drawing
+  // then removing them. Net opening = every non-starting root tech, plus a few
+  // children once 3+ of your starting techs were roots.
+  _initHand() {
+    const target = this.handSize();
+    const draw = () => {
+      const id = this._drawOne(new Set(), true); // no min-non-trashable on the opener
+      if (id == null) return false;
+      this.state.set(id, 'available');
+      this.hand.push(id);
+      return true;
+    };
+    let n1 = target - this.hand.length + 1;           // phase 1: over-fill by one (roots only)
+    for (let i = 0; i < n1; i++) if (!draw()) break;
+    // phase 2: acquire starting techs, removing them from the hand if they were drawn
+    for (const id of this._startingTechs) {
+      this.state.set(id, 'acquired');
+      const i = this.hand.indexOf(id);
+      if (i >= 0) this.hand.splice(i, 1);
+    }
+    // phase 3 (free techs) omitted unless configured; phase 4 top-up (children now eligible):
+    let n4 = target - this.hand.length - 1;
+    for (let i = 0; i < n4; i++) if (!draw()) break;
+    this._log('draw', this.hand.length
+      ? `Opening hand: ${this.hand.map((id) => this._label(id)).join(', ')}.`
+      : 'No techs to draw.');
   }
 
   // ---- derived ----

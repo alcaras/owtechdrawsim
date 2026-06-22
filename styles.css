@@ -33,15 +33,24 @@ body {
 .picker-sub { color: var(--ink-soft); font-size: 16px; line-height: 1.5; margin: 0 auto 28px; max-width: 580px; }
 .nation-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 14px; }
 .nation-card {
-  --accent: #caa45a;
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 18px 10px; border: 1px solid var(--line); border-radius: 14px;
+  --accent: #caa45a; --bg: #caa45a;
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 16px 10px 14px; border: 1px solid var(--line); border-top: 5px solid var(--accent); border-radius: 14px;
   background: var(--card); cursor: pointer; transition: transform .12s, box-shadow .12s, border-color .12s;
   box-shadow: var(--shadow);
 }
-.nation-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--accent); }
-.nation-crest { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
-.nation-name { font-weight: 650; font-size: 15px; }
+/* soft wash of the nation's team color behind the card */
+.nation-card::before { content: ''; position: absolute; inset: 0; background: var(--bg); opacity: .14; pointer-events: none; }
+.nation-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.nation-card:hover::before { opacity: .24; }
+.nation-crest-disc {
+  position: relative; width: 72px; height: 72px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--bg);
+  box-shadow: inset 0 0 0 3px rgba(255,255,255,.45), 0 2px 5px rgba(0,0,0,.22);
+}
+.nation-crest { width: 50px; height: 50px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,.3)); }
+.nation-name { position: relative; font-weight: 700; font-size: 15px; }
 .picker-foot { display: flex; gap: 22px; justify-content: center; margin-top: 26px; color: var(--ink-soft); flex-wrap: wrap; }
 .opt { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
 .seed-input { width: 70px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
@@ -135,10 +144,15 @@ body {
 .pill-law { background: #d6dcee; color: #36447a; }
 .pill-proj { background: #efd9d6; color: #7a3636; }
 
-.card-cost { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; font-size: 17px; margin-top: auto; }
+.card-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin-top: auto; }
+.card-cost { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; font-size: 17px; }
 .card-cost img { width: 16px; height: 16px; }
+.card-opens { display: inline-flex; gap: 5px; align-items: center; }
+.op { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 800; padding: 1px 7px; border-radius: 20px; line-height: 1.5; }
+.op-hard { background: #d6dcee; color: #36447a; }   /* hard tech cards */
+.op-soft { background: var(--bonus-bg); color: var(--bonus); }  /* soft bonus cards */
 .card-bonus .card-unlocks { margin-top: 0; }
-.card-prog { height: 5px; background: rgba(0,0,0,.1); border-radius: 4px; overflow: hidden; position: absolute; left: 14px; right: 14px; bottom: 9px; }
+.card-prog { height: 5px; background: rgba(0,0,0,.1); border-radius: 4px; overflow: hidden; margin-top: 8px; }
 .card-prog > i { display: block; height: 100%; background: var(--gold); transition: width .25s; }
 
 .hand-actions { display: flex; gap: 14px; align-items: center; }

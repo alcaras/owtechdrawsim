@@ -19,6 +19,24 @@ const nationColor = (id) => ND.colors[id] || { bg: '#caa45a', accent: '#caa45a',
 
 const $ = (sel) => document.querySelector(sel);
 
+// Cards a tech adds to the draw pool when researched: hard = main techs that list it
+// as a prereq; soft = bonus cards whose parent is this tech.
+const DOWNSTREAM = (() => {
+  const hard = new Map(), soft = new Map();
+  const push = (m, k, v) => { if (!m.has(k)) m.set(k, []); m.get(k).push(v); };
+  for (const t of TD.techs) for (const p of (t.prereqs || [])) push(hard, p, t.id);
+  for (const b of TD.bonusTechs) if (b.parent) push(soft, b.parent, b.id);
+  return { hard, soft };
+})();
+function opensHTML(id) {
+  const h = (DOWNSTREAM.hard.get(id) || []).length;
+  const s = (DOWNSTREAM.soft.get(id) || []).length;
+  let out = '';
+  if (h) out += `<span class="op op-hard" title="Researching this adds ${h} new tech card${h > 1 ? 's' : ''} to your draw pool">⊞ ${h}</span>`;
+  if (s) out += `<span class="op op-soft" title="Adds ${s} bonus card${s > 1 ? 's' : ''} to your draw pool">★ ${s}</span>`;
+  return `<span class="card-opens">${out}</span>`;
+}
+
 let engine = null;
 
 // ---------- nation picker ----------
@@ -30,8 +48,9 @@ function buildPicker() {
     const btn = document.createElement('button');
     btn.className = 'nation-card';
     btn.style.setProperty('--accent', c.accent);
+    btn.style.setProperty('--bg', c.bg);
     btn.innerHTML = `
-      <img class="nation-crest" src="${crestIcon(c.crest)}" alt="" onerror="this.style.visibility='hidden'" />
+      <span class="nation-crest-disc"><img class="nation-crest" src="${crestIcon(c.crest)}" alt="" onerror="this.style.visibility='hidden'" /></span>
       <span class="nation-name">${nationName(id)}</span>`;
     btn.addEventListener('click', () => startGame(id));
     grid.appendChild(btn);
@@ -85,6 +104,7 @@ function unlockPills(unlocks) {
 }
 
 function cardHTML(card) {
+  const costHTML = `<span class="card-cost">${card.cost}<img src="${SCI_ICON}" alt="science" /></span>`;
   if (card.isBonus) {
     return `
       <button class="card card-bonus${card.isCurrent ? ' is-current' : ''}" data-id="${card.id}">
@@ -94,7 +114,7 @@ function cardHTML(card) {
         </div>
         <div class="card-name">${escapeHtml(card.name)}</div>
         <div class="card-bonus-text">${escapeHtml(card.bonus || 'One-time bonus')}</div>
-        <div class="card-cost">${card.cost}<img src="${SCI_ICON}" alt="sci" /></div>
+        <div class="card-foot">${costHTML}<span class="card-opens"></span></div>
         ${progressHTML(card)}
       </button>`;
   }
@@ -106,7 +126,7 @@ function cardHTML(card) {
       </div>
       <div class="card-name">${escapeHtml(card.name)}</div>
       ${unlockPills(card.unlocks)}
-      <div class="card-cost">${card.cost}<img src="${SCI_ICON}" alt="sci" /></div>
+      <div class="card-foot">${costHTML}${opensHTML(card.id)}</div>
       ${progressHTML(card)}
     </button>`;
 }
@@ -232,6 +252,7 @@ function planConfig() {
   const oracle = parseInt($('#planOracle').value, 10);
   return {
     scholar: $('#planScholar').checked,
+    strict: $('#planStrict').checked,
     oracleTurn: Number.isFinite(oracle) && oracle > 0 ? oracle : null,
     maxTurns: 400,
   };

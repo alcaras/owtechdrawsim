@@ -98,6 +98,8 @@
         <textarea id="planInput" class="plan-input" rows="3" placeholder="https://…/?n=10&o=13,14,7,-8   — or —   TECH_PHALANX, TECH_SPOKED_WHEEL"></textarea>
         <div class="plan-config">
           <label class="opt"><input type="checkbox" id="planScholar" /> Scholar</label>
+          <label class="opt" title="Strict: chase your #1-priority tech next, redrawing past lower-priority cards in hand. Off = flexible: take whatever wanted card appears (usually faster).">
+            <input type="checkbox" id="planStrict" /> Strict order</label>
           <label class="opt">Oracle on turn <input type="number" id="planOracle" class="seed-input" placeholder="never" min="1" /></label>
           <label class="opt">Runs <input type="number" id="planRuns" class="seed-input" value="160" min="20" max="1000" /></label>
           <span id="planNationNote" class="plan-nation-note"></span>

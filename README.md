@@ -35,6 +35,7 @@ The draw engine (`engine.js`) mirrors `Player.cs` from the Old World reference s
 | Rule | Source | Implemented |
 |---|---|---|
 | Hand size = 4 + Oracle(+1) | `MAX_TECHS_AVAILABLE`, `iTechsAvailableChange` | ✓ |
+| Special opening hand (over-fill by one, then top up after starting techs are acquired) | `initNation` | ✓ |
 | ≥ 2 non-bonus cards per hand | `MIN_NON_TRASHABLE_TECHS_AVAILABLE = 2` | ✓ |
 | Uniform-random card selection | `random(1..1000)`, highest wins | ✓ |
 | Fresh hand on acquisition | `doTechsAvailable()` | ✓ |
@@ -42,6 +43,17 @@ The draw engine (`engine.js`) mirrors `Player.cs` from the Old World reference s
 | Bonus (`bTrash`) discarded → gone forever | `setTechTrashed` | ✓ |
 | Scholar redraw, once/turn, excludes discards | `bRedrawTechs`, `doTechsAvailable(true)` | ✓ |
 | Prereqs gate availability | `canMakeTechAvailable` | ✓ |
+
+The **opening hand** is genuinely special: at game start only the root (no-prereq)
+techs are eligible, so the over-fill draws all of them, then your starting techs are
+acquired (removing any from the hand) and the hand tops up. Net result — the first
+hand is every non-starting root plus a few children, so e.g. Rome (starts
+Ironworking + Stonecutting + Polis) opens with exactly Trapping / Divination /
+Administration.
+
+Each hand card shows its **science cost** (with the beaker) bottom-left and what it
+*adds to your draw pool* bottom-right: **⊞ hard tech cards** (techs it unlocks as a
+prereq) and **★ soft bonus cards** (bonus cards attached to it).
 
 Out of scope for now: culture-gated nation unique-unit cards (a separate
 culture-level system) are excluded from the draw pool. Tech prereqs use the
@@ -62,6 +74,10 @@ Click **📋 Plan & Optimize** to analyze a research plan instead of playing by 
 - **Optimize** searches orderings (hill-climb with **Common Random Numbers** — every
   candidate scored on the same seed set) and reports the fastest order plus an
   `?o=` string to paste back into owtt.
+- **Strict order** toggle — *off* (flexible, default) takes whatever wanted card
+  appears, which is usually fastest; *on* chases your #1-priority tech next,
+  redrawing past lower-priority cards, so techs land in your exact order (it still
+  grabs an on-plan bonus rather than let it burn).
 
 A real finding the tool surfaces: with **Scholar**, redraw-digging banks science with
 zero waste, so completing a whole *set* becomes science-bound and order barely

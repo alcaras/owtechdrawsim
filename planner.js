@@ -105,6 +105,41 @@ function cheapestCycle(eng) {
   if (!pool.length) return null;
   return pool.reduce((a, b) => (eng.cost(b) < eng.cost(a) ? b : a));
 }
+// Strict mode: the next thing to research is the first not-yet-acquired item in order.
+function strictNext(eng, order) {
+  for (const id of order) if (eng.state.get(id) !== 'acquired') return id;
+  return null;
+}
+
+// Decide what to research this turn (may redraw). Returns an id, or null to bank.
+//   flexible (default): take the best wanted card present (bonus before main).
+//   strict: research only the next-in-order item; redraw/dig past lower-priority
+//           wanted cards — but still grab an on-plan bonus in hand so it isn't lost.
+function chooseResearch(eng, order, rank, config) {
+  const tryPick = () => {
+    if (config.strict) {
+      const next = strictNext(eng, order);
+      if (next != null && eng.hand.includes(next)) return next;
+      const wantedBonus = eng.hand.filter((id) => rank.has(id) && eng.isBonus(id));
+      if (wantedBonus.length) return wantedBonus.reduce((a, b) => (rank.get(b) < rank.get(a) ? b : a));
+      return null;
+    }
+    return bestWanted(eng, rank);
+  };
+  let pick = tryPick();
+  if (pick == null && config.scholar && eng.canRedraw) { eng.redraw(); pick = tryPick(); }
+  if (pick == null && !config.scholar) {
+    if (config.strict) {
+      // cycle on a non-plan card to preserve order; only take a plan card if forced
+      const nonPlan = eng.hand.filter((id) => !rank.has(id));
+      const src = nonPlan.length ? nonPlan : eng.hand;
+      pick = src.length ? src.reduce((a, b) => (eng.cost(b) < eng.cost(a) ? b : a)) : null;
+    } else {
+      pick = cheapestCycle(eng);
+    }
+  }
+  return pick;
+}
 
 // Drive one engine to plan completion (or failure). Returns timing + waste.
 export function autoPlay(eng, order, config) {
@@ -119,10 +154,8 @@ export function autoPlay(eng, order, config) {
     if (config.oracleTurn && eng.turn === config.oracleTurn) eng.buildOracle();
 
     if (!eng.currentResearch) {
-      let pick = bestWanted(eng, rank);
-      if (pick == null && config.scholar && eng.canRedraw) { eng.redraw(); pick = bestWanted(eng, rank); }
+      const pick = chooseResearch(eng, order, rank, config);
       if (pick != null) eng.pickResearch(pick);
-      else if (!config.scholar) { const c = cheapestCycle(eng); if (c != null) eng.pickResearch(c); }
       // Scholar with nothing wanted: bank the turn (no pick) and redraw next turn.
     }
     eng.nextTurn();

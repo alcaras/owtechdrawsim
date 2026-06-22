@@ -104,5 +104,30 @@ section('on-plan bonus is captured or reported lost (not silently ignored)');
   ok(r.successRate + r.lostBonusRate >= 0.99, `every run either completes or loses the bonus (succ ${r.successRate.toFixed(2)} + lost ${r.lostBonusRate.toFixed(2)})`);
 }
 
+section('strict mode researches in exact priority order; flexible is no slower');
+{
+  const targets = ['TECH_DRAMA', 'TECH_PHALANX', 'TECH_SPOKED_WHEEL', 'TECH_STEEL'];
+  const byId = _internal.buildIndex(TD);
+  const order = expandPlan(targets, byId, new Set(ND.startingTechs['NATION_ROME']));
+  const curve = makeScienceCurve('NATION_ROME');
+  // strict (with Scholar, so digging never forces off-order research): along the
+  // expanded order, acquisition turns are non-decreasing every run
+  let monotonic = true;
+  for (const s of seeds.slice(0, 40)) {
+    const eng = new DrawEngine({ techs: TD.techs, bonusTechs: TD.bonusTechs, scienceCurve: curve });
+    eng.start({ nation: 'NATION_ROME', startingTechs: ND.startingTechs['NATION_ROME'], seed: s, scholar: true });
+    const r = autoPlay(eng, order, { scholar: true, oracleTurn: null, maxTurns: 400, strict: true });
+    for (let i = 1; i < order.length; i++) {
+      if ((r.acquiredTurn[order[i]] ?? 0) < (r.acquiredTurn[order[i - 1]] ?? 0)) { monotonic = false; break; }
+    }
+  }
+  ok(monotonic, 'strict: techs acquired in exact order every run');
+
+  const flex = simulatePlan({ TD, ND, nation: 'NATION_ROME', targets, config: { scholar: false, oracleTurn: null, maxTurns: 400, strict: false }, seeds });
+  const strict = simulatePlan({ TD, ND, nation: 'NATION_ROME', targets, config: { scholar: false, oracleTurn: null, maxTurns: 400, strict: true }, seeds });
+  ok(flex.completion.mean <= strict.completion.mean + 1e-6, `flexible mean <= strict mean (${flex.completion.mean.toFixed(1)} <= ${strict.completion.mean.toFixed(1)})`);
+  console.log(`    flexible ${flex.completion.mean.toFixed(1)} vs strict ${strict.completion.mean.toFixed(1)} turns`);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

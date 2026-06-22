@@ -29,9 +29,39 @@ section('hand size');
 {
   const e = mk();
   ok(e.handSize() === MAX_TECHS_AVAILABLE, 'base hand size is 4');
-  ok(e.hand.length <= 4 && e.hand.length > 0, 'initial hand has up to 4 cards');
+  ok(e.hand.length > 0, 'initial hand non-empty');
   e.buildOracle();
   ok(e.handSize() === 5, 'hand size is 5 after Oracle built');
+}
+
+section('faithful opening hand (Player.cs initNation)');
+{
+  // roots = no-prereq main techs; R = starting techs that are roots.
+  const roots = TD.techs.filter((t) => (t.prereqs || []).length === 0).map((t) => t.id);
+  const check = (nation) => {
+    const starting = new Set(ND.startingTechs[nation] || []);
+    const e = new DrawEngine({ techs: TD.techs, bonusTechs: TD.bonusTechs });
+    e.start({ nation, startingTechs: [...starting], seed: 42 });
+    const R = roots.filter((id) => starting.has(id)).length;
+    const expectSize = R <= 2 ? 5 - R : 3;
+    const nonStartRoots = roots.filter((id) => !starting.has(id));
+    // every non-starting root is in the opener
+    const hasAllRoots = nonStartRoots.every((id) => e.hand.includes(id));
+    ok(hasAllRoots, `${nation}: opener contains every non-starting root`);
+    ok(e.hand.length === expectSize, `${nation}: opener size ${e.hand.length} === ${expectSize} (R=${R})`);
+    // no starting tech appears in the opener
+    ok(!e.hand.some((id) => starting.has(id)), `${nation}: no starting tech in opener`);
+  };
+  check('NATION_ROME');    // R=2 -> 3 cards
+  check('NATION_GREECE');
+  check('NATION_BABYLONIA');
+  check('NATION_PERSIA');
+  // Rome opener is deterministic: exactly the 3 non-starting roots
+  const rome = mk();
+  const romeStart = new Set(ND.startingTechs['NATION_ROME']);
+  const expected = roots.filter((id) => !romeStart.has(id)).sort();
+  ok(JSON.stringify([...rome.hand].sort()) === JSON.stringify(expected),
+    'Rome opener is exactly the non-starting roots (Trapping/Divination/Administration)');
 }
 
 section('oracle sticks and is turn-stamped');
@@ -134,10 +164,15 @@ section('determinism: same seed -> same draws');
 {
   const a = mk({ seed: 123 });
   const b = mk({ seed: 123 });
-  ok(JSON.stringify(a.hand) === JSON.stringify(b.hand), 'identical initial hands for same seed');
-  const c = mk({ seed: 124 });
-  // very likely different; not a hard guarantee but practically certain
-  ok(JSON.stringify(a.hand) !== JSON.stringify(c.hand), 'different seed -> different hand (practically)');
+  ok(JSON.stringify(a.hand) === JSON.stringify(b.hand), 'identical openers for same seed');
+  // The opener is deterministic (roots), so test seed-sensitivity on the next,
+  // randomly-drawn hand: research the first card, then compare hands across seeds.
+  const advance = (e) => { e.pickResearch(e.hand[0]); let g = 0; while (e.currentResearch && g++ < 500) e.nextTurn(); return e.hand.slice(); };
+  const h123 = advance(mk({ seed: 123 }));
+  const h124 = advance(mk({ seed: 124 }));
+  ok(JSON.stringify(h123) !== JSON.stringify(h124), 'different seed -> different later hand (practically)');
+  const h123b = advance(mk({ seed: 123 }));
+  ok(JSON.stringify(h123) === JSON.stringify(h123b), 'same seed -> same later hand');
 }
 
 section('prereqs gate availability');
