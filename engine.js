@@ -255,7 +255,7 @@ export class DrawEngine {
     return true;
   }
 
-  setScholar(on) { this.scholar = !!on; }
+  setScholar(on) { on = !!on; if (on === this.scholar) return false; this.scholar = on; return true; }
 
   // You must always be researching something to end a turn.
   canEndTurn() { return !this.isDone() && this.currentResearch != null; }

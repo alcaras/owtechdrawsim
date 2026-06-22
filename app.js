@@ -42,13 +42,17 @@ let _overflow = 0; // current carried-over science, for the preview on cards
 
 // ---- undo / redo ----
 let undoStack = [], redoStack = [];
-function pushUndo() {
-  if (!engine) return;
-  undoStack.push(engine.snapshot());
-  if (undoStack.length > 300) undoStack.shift();
-  redoStack = [];
+// Record an undo step only when the action actually changed state (so no-ops like
+// re-selecting a card or building the Oracle twice don't flood the stack).
+function act(fn) {
+  const snap = engine.snapshot();
+  if (fn() !== false) {
+    undoStack.push(snap);
+    if (undoStack.length > 300) undoStack.shift();
+    redoStack = [];
+  }
+  render();
 }
-function act(fn) { pushUndo(); fn(); render(); }
 function undo() {
   if (!undoStack.length) return;
   redoStack.push(engine.snapshot());
@@ -213,7 +217,8 @@ function render() {
   // hand
   $('#hand').innerHTML = v.hand.map(cardHTML).join('') || '<div class="hand-empty">No cards to draw.</div>';
   $('#hand').querySelectorAll('.card').forEach((el) => {
-    el.addEventListener('click', () => act(() => engine.pickResearch(el.dataset.id)));
+    // Selecting a card is ephemeral (freely reversible) — not an undo step.
+    el.addEventListener('click', () => { engine.pickResearch(el.dataset.id); render(); });
   });
 
   // actions
