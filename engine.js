@@ -62,7 +62,7 @@ export class DrawEngine {
   start({ nation = null, startingTechs = [], seed = 1, scholar = false, freeTechs = 0 } = {}) {
     this.nation = nation;
     this.seed = seed >>> 0;
-    this.rng = mulberry32(this.seed);
+    this._rngState = this.seed;       // serializable RNG state (for undo/redo)
     this.scholar = scholar;
     this.oracleBuiltTurn = null;     // null until built; then sticks forever
     this.turn = 1;
@@ -173,8 +173,16 @@ export class DrawEngine {
       }
     }
     if (pool.length === 0) return null;
-    const idx = Math.floor(this.rng() * pool.length);
+    const idx = Math.floor(this._rand() * pool.length);
     return pool[idx];
+  }
+
+  // mulberry32 step over serializable state.
+  _rand() {
+    this._rngState |= 0; this._rngState = (this._rngState + 0x6d2b79f5) | 0;
+    let t = Math.imul(this._rngState ^ (this._rngState >>> 15), 1 | this._rngState);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   }
 
   // Fill a fresh hand, guaranteeing MIN_NON_TRASHABLE non-bonus cards if available.
@@ -215,16 +223,14 @@ export class DrawEngine {
 
   // ---- player actions ----
 
-  // Choose which card in hand to research. Carried overflow science applies immediately.
+  // Choose which card in hand to research. Carried-over (overflow) science is NOT
+  // committed here — like the game, it only collapses onto your pick when you end the
+  // turn, so you can freely change your mind first.
   pickResearch(id) {
     if (!this.hand.includes(id)) return false;
+    if (id === this.currentResearch) return true;
     this.currentResearch = id;
-    if (this.overflow > 0) {
-      this._invest(id, this.overflow);
-      this.overflow = 0;
-    }
-    this._log('pick', `Researching ${this._label(id)} (${this.investedIn(id)}/${this.cost(id)}).`);
-    this._maybeComplete();
+    this._log('pick', `Researching ${this._label(id)} (${this.investedIn(id)}/${this.cost(id)})${this.overflow ? ` +${this.overflow} carry on next turn` : ''}.`);
     return true;
   }
 
@@ -251,20 +257,20 @@ export class DrawEngine {
 
   setScholar(on) { this.scholar = !!on; }
 
-  // Advance one turn: gain science, pour it into the current research, handle completion.
+  // You must always be researching something to end a turn.
+  canEndTurn() { return !this.isDone() && this.currentResearch != null; }
+
+  // Advance one turn: gain this turn's science, add any carried-over science, pour it
+  // all into the current research, then handle completion. Requires a current pick.
   nextTurn() {
-    if (this.isDone()) return false;
+    if (!this.canEndTurn()) return false;
     const gain = this.scienceCurve(this.turn);
     this.totalScience += gain;
-    if (this.currentResearch) {
-      this._invest(this.currentResearch, gain);
-      this._log('tick', `Turn ${this.turn}: +${gain} science → ${this._label(this.currentResearch)} (${this.investedIn(this.currentResearch)}/${this.cost(this.currentResearch)}).`);
-      this._maybeComplete();
-    } else {
-      // No research selected — science banks as overflow for the next pick.
-      this.overflow += gain;
-      this._log('tick', `Turn ${this.turn}: +${gain} science banked (nothing selected).`);
-    }
+    const pool = gain + this.overflow;          // carry collapses onto the chosen tech
+    this.overflow = 0;
+    this._invest(this.currentResearch, pool);
+    this._log('tick', `Turn ${this.turn}: +${gain}${pool > gain ? ` (+${pool - gain} carry)` : ''} science → ${this._label(this.currentResearch)} (${this.investedIn(this.currentResearch)}/${this.cost(this.currentResearch)}).`);
+    this._maybeComplete();
     this.turn += 1;
     this.redrawUsedThisTurn = false;
     return true;
@@ -299,6 +305,23 @@ export class DrawEngine {
   }
   _log(type, text) {
     this.log.push({ turn: this.turn, type, text });
+  }
+
+  // ---- undo / redo support: snapshot & restore the full mutable state ----
+  snapshot() {
+    return structuredClone({
+      nation: this.nation, seed: this.seed, _rngState: this._rngState,
+      scholar: this.scholar, oracleBuiltTurn: this.oracleBuiltTurn,
+      turn: this.turn, totalScience: this.totalScience, overflow: this.overflow,
+      redrawUsedThisTurn: this.redrawUsedThisTurn, currentResearch: this.currentResearch,
+      invested: this.invested, acquiredOrder: this.acquiredOrder,
+      log: this.log, state: this.state, hand: this.hand,
+    });
+  }
+  restore(snap) {
+    const s = structuredClone(snap);
+    Object.assign(this, s);
+    return this;
   }
 
   // Draw pile / discard breakdown for the UI.
@@ -339,6 +362,7 @@ export class DrawEngine {
       oracleBuiltTurn: this.oracleBuiltTurn,
       scholar: this.scholar,
       canRedraw: this.canRedraw(),
+      canEndTurn: this.canEndTurn(),
       currentResearch: this.currentResearch,
       hand: this.hand.map((id) => {
         const t = this.get(id);

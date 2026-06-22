@@ -186,5 +186,48 @@ section('prereqs gate availability');
   else ok(true, 'skipped (gated tech happened to be reachable)');
 }
 
+section('force-pick: must be researching to end a turn');
+{
+  const e = mk({ seed: 11 });
+  ok(e.currentResearch === null, 'no research selected after opener');
+  ok(e.canEndTurn() === false, 'cannot end turn with nothing selected');
+  ok(e.nextTurn() === false, 'nextTurn refused without a pick');
+  e.pickResearch(e.hand[0]);
+  ok(e.canEndTurn() === true, 'can end turn once a tech is selected');
+  ok(e.nextTurn() === true, 'nextTurn proceeds with a pick');
+}
+
+section('overflow is not committed on pick; it collapses onto the pick at next turn');
+{
+  const e = mk({ seed: 4 });
+  e.pickResearch(e.hand[0]);
+  e.overflow = 50; // simulate carried-over science
+  const a = e.hand[0], b = e.hand[1];
+  e.pickResearch(a);
+  ok(e.investedIn(a) === 0, 'picking A does not pour overflow into A');
+  e.pickResearch(b); // change of mind — overflow must not be stuck on A
+  ok(e.investedIn(a) === 0 && e.investedIn(b) === 0, 'overflow still uncommitted after changing pick');
+  const gain = e.scienceCurve(e.turn);
+  e.nextTurn();
+  ok(e.investedIn(b) === gain + 50, 'overflow + this turn collapse onto the final pick B');
+  ok(e.investedIn(a) === 0, 'A received nothing');
+  ok(e.overflow === 0, 'overflow consumed');
+}
+
+section('snapshot / restore (undo) round-trips state and RNG');
+{
+  const e = mk({ seed: 5 });
+  e.pickResearch(e.hand[0]);
+  const snap = e.snapshot();
+  const t0 = e.turn, sci0 = e.totalScience, hand0 = JSON.stringify(e.hand);
+  const adv = (x) => { let g = 0; while (x.currentResearch && g++ < 500) x.nextTurn(); return JSON.stringify(x.hand); };
+  const r1 = adv(e);
+  ok(e.turn > t0, 'state advanced after snapshot');
+  e.restore(snap);
+  ok(e.turn === t0 && e.totalScience === sci0 && JSON.stringify(e.hand) === hand0, 'restore rewinds to the exact snapshot');
+  const r2 = adv(e);
+  ok(r1 === r2, 'restored RNG replays identical draws');
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

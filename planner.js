@@ -128,7 +128,9 @@ function chooseResearch(eng, order, rank, config) {
   };
   let pick = tryPick();
   if (pick == null && config.scholar && eng.canRedraw) { eng.redraw(); pick = tryPick(); }
-  if (pick == null && !config.scholar) {
+  // You must always research something — never bank an empty turn. If nothing wanted
+  // is in hand (even after a redraw), cycle on the cheapest card.
+  if (pick == null) {
     if (config.strict) {
       // cycle on a non-plan card to preserve order; only take a plan card if forced
       const nonPlan = eng.hand.filter((id) => !rank.has(id));

@@ -38,6 +38,29 @@ function opensHTML(id) {
 }
 
 let engine = null;
+let _overflow = 0; // current carried-over science, for the preview on cards
+
+// ---- undo / redo ----
+let undoStack = [], redoStack = [];
+function pushUndo() {
+  if (!engine) return;
+  undoStack.push(engine.snapshot());
+  if (undoStack.length > 300) undoStack.shift();
+  redoStack = [];
+}
+function act(fn) { pushUndo(); fn(); render(); }
+function undo() {
+  if (!undoStack.length) return;
+  redoStack.push(engine.snapshot());
+  engine.restore(undoStack.pop());
+  render();
+}
+function redo() {
+  if (!redoStack.length) return;
+  undoStack.push(engine.snapshot());
+  engine.restore(redoStack.pop());
+  render();
+}
 
 // ---------- nation picker ----------
 function buildPicker() {
@@ -70,6 +93,7 @@ function startGame(nationId) {
     scholar,
   });
   window.__engine = engine; // exposed for debugging / headless drivers
+  undoStack = []; redoStack = [];
   $('#picker').hidden = true;
   $('#game').hidden = false;
   $('#scholarToggle').checked = scholar;
@@ -134,13 +158,17 @@ function cardHTML(card) {
 }
 
 function progressHTML(card) {
-  if (!card.invested) return '<div class="card-prog"><i style="width:0%"></i></div>';
-  const pct = Math.min(100, Math.round((card.invested / card.cost) * 100));
-  return `<div class="card-prog"><i style="width:${pct}%"></i></div>`;
+  // solid = committed science; preview = the carried-over (overflow) science that would
+  // collapse onto this card if you end the turn with it selected.
+  const base = Math.min(100, (card.invested / card.cost) * 100);
+  const withOv = Math.min(100, ((card.invested + _overflow) / card.cost) * 100);
+  const prev = Math.max(0, withOv - base);
+  return `<div class="card-prog"><i class="prog-solid" style="width:${base}%"></i><i class="prog-prev" style="width:${prev}%"></i></div>`;
 }
 
 function render() {
   const v = engine.view();
+  _overflow = v.overflow;
 
   // topbar
   const c = nationColor(v.nation);
@@ -166,32 +194,33 @@ function render() {
 
   // research bar
   const rb = $('#researchBody');
+  const carryNote = v.overflow ? `<span class="carry-tag" title="Carried-over science — applies to whichever card you have selected when you press Next turn">↻ +${v.overflow} carry</span>` : '';
   if (v.currentResearch) {
-    const card = v.hand.find((h) => h.id === v.currentResearch);
     const t = engine.get(v.currentResearch);
-    const cost = t.cost, inv = card ? card.invested : engine.investedIn(v.currentResearch);
-    const pct = Math.min(100, Math.round((inv / cost) * 100));
+    const cost = t.cost, inv = engine.investedIn(v.currentResearch);
+    const base = Math.min(100, (inv / cost) * 100);
+    const prev = Math.max(0, Math.min(100, ((inv + v.overflow) / cost) * 100) - base);
     rb.innerHTML = `
       <span class="research-name">${t.isBonus ? '★' : ''}${escapeHtml(t.name)}</span>
-      <div class="research-bar"><i style="width:${pct}%"></i><b>${inv} / ${cost}</b></div>`;
+      <div class="research-bar"><i class="rb-solid" style="width:${base}%"></i><i class="rb-prev" style="width:${prev}%"></i><b>${inv}${v.overflow ? `<span class="rb-ov">+${v.overflow}</span>` : ''} / ${cost}</b></div>
+      ${carryNote}`;
   } else if (v.done) {
     rb.innerHTML = `<span class="research-empty">All available techs researched. 🎉</span>`;
   } else {
-    rb.innerHTML = `<span class="research-empty">Pick a card below to begin${v.overflow ? ` (${v.overflow} science banked)` : ''}.</span>`;
+    rb.innerHTML = `<span class="research-empty">Pick a card below — you must be researching something to advance.</span>${carryNote}`;
   }
 
   // hand
   $('#hand').innerHTML = v.hand.map(cardHTML).join('') || '<div class="hand-empty">No cards to draw.</div>';
   $('#hand').querySelectorAll('.card').forEach((el) => {
-    el.addEventListener('click', () => {
-      engine.pickResearch(el.dataset.id);
-      render();
-    });
+    el.addEventListener('click', () => act(() => engine.pickResearch(el.dataset.id)));
   });
 
   // actions
   $('#redrawBtn').disabled = !v.canRedraw;
-  $('#nextBtn').disabled = v.done;
+  $('#nextBtn').disabled = !v.canEndTurn;
+  $('#undoBtn').disabled = !undoStack.length;
+  $('#redoBtn').disabled = !redoStack.length;
 
   // history (newest first)
   $('#history').innerHTML = v.log.slice().reverse().map((e) =>
@@ -223,21 +252,25 @@ function escapeHtml(s) {
 }
 
 // ---------- wire controls ----------
-$('#nextBtn').addEventListener('click', () => { engine.nextTurn(); render(); });
-$('#redrawBtn').addEventListener('click', () => { engine.redraw(); render(); });
-$('#oracleBtn').addEventListener('click', () => { engine.buildOracle(); render(); });
-$('#scholarToggle').addEventListener('change', (e) => { engine.setScholar(e.target.checked); render(); });
+$('#nextBtn').addEventListener('click', () => act(() => engine.nextTurn()));
+$('#redrawBtn').addEventListener('click', () => act(() => engine.redraw()));
+$('#oracleBtn').addEventListener('click', () => act(() => engine.buildOracle()));
+$('#scholarToggle').addEventListener('change', (e) => act(() => engine.setScholar(e.target.checked)));
+$('#undoBtn').addEventListener('click', undo);
+$('#redoBtn').addEventListener('click', redo);
 $('#restartBtn').addEventListener('click', restart);
 $('#restartBtn2').addEventListener('click', restart);
 
-// keyboard: space / enter = next turn, r = redraw
+// keyboard: space/enter = next turn, r = redraw, cmd/ctrl+Z = undo, +shift = redo
 document.addEventListener('keydown', (e) => {
   if (!engine || $('#game').hidden) return;
-  if (e.code === 'Space' || e.code === 'Enter') {
-    if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
-    e.preventDefault(); engine.nextTurn(); render();
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+    e.preventDefault(); e.shiftKey ? redo() : undo();
+  } else if (e.code === 'Space' || e.code === 'Enter') {
+    e.preventDefault(); if (engine.canEndTurn()) act(() => engine.nextTurn());
   } else if (e.key === 'r' && engine.view().canRedraw) {
-    engine.redraw(); render();
+    act(() => engine.redraw());
   }
 });
 

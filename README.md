@@ -20,10 +20,14 @@ python3 -m http.server 8731   # then visit http://localhost:8731/
    nation where available, otherwise the all-nations aggregate).
 4. When a tech finishes, the rest of the hand is discarded and a **fresh hand** is
    dealt — exactly like the game (`doTechsAvailable` fires on acquisition, not every
-   turn).
+   turn). Leftover **carry** science doesn't commit to a card until you press Next
+   turn, so it previews on every card and collapses onto whichever you have selected
+   — you can change your mind freely first. You must always be researching something
+   to advance.
 5. **Scholar** (toggle): redraw the current hand once per turn. **Oracle** (build it
    on any turn): permanently bumps your hand from 4 to 5 cards.
-6. **Restart** returns to the nation picker. Set a **seed** for a reproducible run.
+6. **Undo / Redo** (↶ ↷ at top, or ⌘Z / ⇧⌘Z) step through every action. **Restart**
+   returns to the nation picker. The **seed** is random each game unless you type one.
 
 The right-hand **History** logs every draw, pick, completion, redraw, trashed bonus,
 and reshuffle. **Researched** lists each acquired tech with the turn and science spent.
