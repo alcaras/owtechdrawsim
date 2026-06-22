@@ -58,7 +58,9 @@ function buildPicker() {
 }
 
 function startGame(nationId) {
-  const seed = parseInt($('#pickSeed').value, 10) || 1;
+  // Random seed each game unless the player typed one.
+  const raw = $('#pickSeed').value.trim();
+  const seed = raw === '' ? Math.floor(Math.random() * 0x100000000) : (parseInt(raw, 10) || 1);
   const scholar = $('#pickScholar').checked;
   engine = new DrawEngine({ techs: TD.techs, bonusTechs: TD.bonusTechs, scienceCurve: makeScienceCurve(nationId) });
   engine.start({
@@ -206,10 +208,9 @@ function render() {
   const p = v.piles;
   const chip = (c) => `<span class="chip${c.isBonus ? ' chip-bonus' : ''}">${c.isBonus ? '★' : ''}${escapeHtml(c.name)}<b>${c.cost}</b></span>`;
   $('#drawCount').textContent = p.draw.length;
-  $('#lockedCount').textContent = p.locked.length ? `+${p.locked.length} locked` : '';
-  $('#drawList').innerHTML =
-    (p.draw.length ? `<div class="pile-row">${p.draw.map(chip).join('')}</div>` : '<div class="pile-empty">empty</div>') +
-    (p.locked.length ? `<div class="pile-divider">Locked by prereqs</div><div class="pile-row dim">${p.locked.map(chip).join('')}</div>` : '');
+  $('#drawList').innerHTML = p.draw.length
+    ? `<div class="pile-row">${p.draw.map(chip).join('')}</div>`
+    : '<div class="pile-empty">empty</div>';
   $('#discardCount').textContent = p.passed.length + p.trashed.length;
   $('#discardList').innerHTML =
     (p.passed.length ? `<div class="pile-divider">Passed — reshuffles back</div><div class="pile-row">${p.passed.map(chip).join('')}</div>` : '') +

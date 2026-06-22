@@ -16,7 +16,7 @@
       <div id="nationGrid" class="nation-grid"></div>
       <div class="picker-foot">
         <label class="opt"><input type="checkbox" id="pickScholar" /> Start with <strong>Scholar</strong> (redraw)</label>
-        <label class="opt">Seed <input type="number" id="pickSeed" value="1" class="seed-input" /></label>
+        <label class="opt">Seed <input type="number" id="pickSeed" class="seed-input" placeholder="random" /></label>
       </div>
     </div>
   </div>
@@ -75,11 +75,11 @@
         <ol id="acquired" class="acquired"></ol>
       </details>
 
-      <details class="pile-wrap" id="pileDraw">
-        <summary>Draw pile <span class="pile-count" id="drawCount">0</span><span class="pile-sub" id="lockedCount"></span></summary>
+      <details class="pile-wrap" id="pileDraw" open>
+        <summary>Draw pile <span class="pile-count" id="drawCount">0</span></summary>
         <div class="pile-body" id="drawList"></div>
       </details>
-      <details class="pile-wrap" id="pileDiscard">
+      <details class="pile-wrap" id="pileDiscard" open>
         <summary>Discard <span class="pile-count discard" id="discardCount">0</span></summary>
         <div class="pile-body" id="discardList"></div>
       </details>

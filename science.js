@@ -28,11 +28,21 @@ export function makeScienceCurve(nationId) {
   return (turn) => Math.max(1, Math.round(rateAt(pts, turn)));
 }
 
+// owglick's earliest sample is turn 5; before that, per-nation differences aren't
+// data-supported (every nation has ~one city at turn 1). So anchor all nations to a
+// shared turn-1 value (the all-nations extrapolation) and let them diverge toward
+// their real turn-5 figure — avoids a fake spread in starting science.
+const ALL_T1 = (() => {
+  const [t0, v0] = scienceCurves.ALL[0], [t1, v1] = scienceCurves.ALL[1];
+  return v0 + ((v1 - v0) / (t1 - t0)) * (1 - t0);
+})();
+
 function rateAt(pts, turn) {
   const first = pts[0], last = pts[pts.length - 1];
   if (turn <= first[0]) {
-    const [t0, v0] = pts[0], [t1, v1] = pts[1];
-    return v0 + ((v1 - v0) / (t1 - t0)) * (turn - t0); // extrapolate down
+    if (turn <= 1) return ALL_T1;
+    const [t1s, v1s] = pts[0]; // interpolate shared turn-1 anchor -> nation's turn-5
+    return ALL_T1 + ((v1s - ALL_T1) / (t1s - 1)) * (turn - 1);
   }
   if (turn >= last[0]) {
     const [t0, v0] = pts[pts.length - 2], [t1, v1] = pts[pts.length - 1];
