@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Old World — Tech Draw Simulator</title>
+  <meta name="description" content="A faithful simulator of Old World's technology card draws. Pick a nation and research the way the game deals it." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Nation picker -->
+  <div id="picker" class="picker">
+    <div class="picker-inner">
+      <h1 class="picker-title">Tech Draw Simulator</h1>
+      <p class="picker-sub">Choose a nation. Research is dealt exactly the way Old World draws it — a hand of four cards (five with the Oracle), one Scholar redraw a turn, bonus cards that burn if you pass them.</p>
+      <div id="nationGrid" class="nation-grid"></div>
+      <div class="picker-foot">
+        <label class="opt"><input type="checkbox" id="pickScholar" /> Start with <strong>Scholar</strong> (redraw)</label>
+        <label class="opt">Seed <input type="number" id="pickSeed" value="1" class="seed-input" /></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game -->
+  <div id="game" class="game" hidden>
+    <header class="topbar">
+      <button id="restartBtn" class="crest-btn" title="Restart / pick a new nation">
+        <img id="topCrest" class="crest" alt="" />
+        <span id="topNation" class="top-nation">—</span>
+      </button>
+
+      <div class="stat"><span class="stat-num" id="statTurn">1</span><span class="stat-lbl">Turn</span></div>
+      <div class="stat"><span class="stat-num" id="statSpt">+8</span><span class="stat-lbl">Science / turn</span></div>
+      <div class="stat"><span class="stat-num" id="statTotal">0</span><span class="stat-lbl">Total science</span></div>
+
+      <div class="topbar-spacer"></div>
+
+      <div class="toggles">
+        <label class="switch"><input type="checkbox" id="scholarToggle" /><span>Scholar</span></label>
+        <button id="oracleBtn" class="oracle-btn">Build Oracle <span class="oracle-plus">+1 card</span></button>
+        <button id="restartBtn2" class="restart-btn" title="Restart">⟲ Restart</button>
+      </div>
+    </header>
+
+    <main class="board">
+      <!-- current research -->
+      <section class="research">
+        <div class="research-label">Researching</div>
+        <div id="researchBody" class="research-body">
+          <span class="research-empty">Pick a card below to begin.</span>
+        </div>
+      </section>
+
+      <!-- the hand -->
+      <section class="hand-wrap">
+        <div class="hand-label">Your hand <span class="hand-hint">— click a card to research it</span></div>
+        <div id="hand" class="hand"></div>
+        <div class="hand-actions">
+          <button id="redrawBtn" class="redraw-btn" disabled>⟳ Scholar redraw <span class="redraw-sub">1 / turn</span></button>
+          <button id="nextBtn" class="next-btn">▶ Next turn</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- history + acquired -->
+    <aside class="ledger">
+      <div class="ledger-head">
+        <span>History</span>
+        <span id="seedLabel" class="seed-label"></span>
+      </div>
+      <ol id="history" class="history"></ol>
+      <details class="acquired-wrap" open>
+        <summary>Researched <span id="acqCount" class="acq-count">0</span></summary>
+        <ol id="acquired" class="acquired"></ol>
+      </details>
+
+      <details class="pile-wrap" id="pileDraw">
+        <summary>Draw pile <span class="pile-count" id="drawCount">0</span><span class="pile-sub" id="lockedCount"></span></summary>
+        <div class="pile-body" id="drawList"></div>
+      </details>
+      <details class="pile-wrap" id="pileDiscard">
+        <summary>Discard <span class="pile-count discard" id="discardCount">0</span></summary>
+        <div class="pile-body" id="discardList"></div>
+      </details>
+    </aside>
+  </div>
+
+  <script src="tech-data.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
