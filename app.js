@@ -103,8 +103,7 @@ function startGame(nationId) {
   undoStack = []; redoStack = [];
   // Add a history entry so the browser Back button returns to the nation picker.
   history.pushState({ screen: 'game' }, '');
-  $('#picker').hidden = true;
-  $('#game').hidden = false;
+  showGameView();
   $('#scholarToggle').checked = scholar;
   applyTheme(nationId);
   render();
@@ -116,20 +115,20 @@ function applyTheme(nationId) {
   document.documentElement.style.setProperty('--nation-accent', c.accent);
 }
 
-// Pure UI reset back to the nation picker (no history side effects).
-function showPicker() {
-  engine = null;
-  undoStack = []; redoStack = [];
-  $('#game').hidden = true;
-  $('#picker').hidden = false;
-}
-// Restart button: pop the game history entry (so Back stays in sync), else just show.
+function showPickerView() { $('#game').hidden = true; $('#picker').hidden = false; }
+function showGameView() { $('#picker').hidden = true; $('#game').hidden = false; }
+// Restart button: pop the game history entry (so Back/Forward stay in sync), else show.
 function restart() {
   if (history.state && history.state.screen === 'game') history.back();
-  else showPicker();
+  else showPickerView();
 }
-// Browser Back/Forward: any navigation off the game returns to the picker.
-window.addEventListener('popstate', () => { if (!$('#game').hidden) showPicker(); });
+// Browser Back/Forward: Back returns to the picker but KEEPS the game state so
+// Forward resumes exactly where you were (engine isn't destroyed).
+window.addEventListener('popstate', (e) => {
+  const screen = (e.state && e.state.screen) || 'picker';
+  if (screen === 'game' && engine) { applyTheme(engine.nation); render(); showGameView(); }
+  else showPickerView();
+});
 if (!history.state) history.replaceState({ screen: 'picker' }, '');
 
 // ---------- render ----------
@@ -324,6 +323,7 @@ function planConfig() {
   return {
     scholar: $('#planScholar').checked,
     strict: $('#planStrict').checked,
+    bonusPolicy: $('#planBonus').value,
     oracleTurn: Number.isFinite(oracle) && oracle > 0 ? oracle : null,
     maxTurns: 400,
   };
@@ -371,14 +371,20 @@ function pillRow(ids) {
 function statsBlock(s) {
   const c = s.completion;
   const rangeTxt = c.median != null ? `${c.median} turns <span class="rng">(p10 ${c.p10} – p90 ${c.p90})</span>` : '—';
-  const warn = s.lostBonusRate > 0.005 ? `<div class="plan-warn">⚠ Loses an on-plan bonus card in ${(s.lostBonusRate * 100).toFixed(0)}% of runs (two on-plan bonuses can share a hand — one is trashed).</div>` : '';
+  const optional = s.bonusPolicy === 'optional';
+  // second cell: bonus-cards-kept (optional mode w/ bonuses) else success rate
+  const secondCell = (optional && s.bonusWanted)
+    ? `<div><span class="sg-num">${s.bonusKept.mean.toFixed(1)} / ${s.bonusWanted}</span><span class="sg-lbl">Bonus cards kept (avg)</span></div>`
+    : `<div><span class="sg-num">${(s.successRate * 100).toFixed(0)}%</span><span class="sg-lbl">Success rate</span></div>`;
+  const warn = (!optional && s.lostBonusRate > 0.005)
+    ? `<div class="plan-warn">⚠ Loses a required bonus card in ${(s.lostBonusRate * 100).toFixed(0)}% of runs (two on-plan bonuses can share a hand — one is trashed). Set Bonuses to “take when convenient” if that's acceptable.</div>` : '';
   const perRows = Object.entries(s.perTarget).map(([id, p]) =>
     `<tr><td class="pt-name">${isBonusId(id) ? '★' : ''}${escapeHtml(techName(id))}</td><td>${p.median ?? '—'}</td><td class="pt-rng">${p.p10 ?? '—'}–${p.p90 ?? '—'}</td></tr>`
   ).join('');
   return `
     <div class="stat-grid">
       <div><span class="sg-num">${rangeTxt}</span><span class="sg-lbl">Completion (median)</span></div>
-      <div><span class="sg-num">${(s.successRate * 100).toFixed(0)}%</span><span class="sg-lbl">Success rate</span></div>
+      ${secondCell}
       <div><span class="sg-num">${s.wasted.median ?? 0}</span><span class="sg-lbl">Wasted science (median)</span></div>
       <div><span class="sg-num">${s.runs}</span><span class="sg-lbl">Runs</span></div>
     </div>

@@ -91,7 +91,7 @@ section('optimizer never returns a slower/less-reliable order (2-bonus regressio
   // the reported case: two on-plan bonuses that can collide and fail the plan
   const targets = ['TECH_DIVINATION', 'TECH_STONECUTTING', 'TECH_STONECUTTING_BONUS_STONE',
     'TECH_ARISTOCRACY', 'TECH_ARISTOCRACY_BONUS_BORDERS', 'TECH_ADMINISTRATION', 'TECH_RHETORIC'];
-  const config = { scholar: false, oracleTurn: null, maxTurns: 400 };
+  const config = { scholar: false, oracleTurn: null, maxTurns: 400, bonusPolicy: 'all' };
   const opt = optimizePlan({ TD, ND, nation: 'NATION_PERSIA', targets, config, seeds });
   ok(opt.best.comp <= opt.baseline.comp + 1e-6, `optimized comp <= baseline (${opt.best.comp.toFixed(1)} <= ${opt.baseline.comp.toFixed(1)})`);
   ok(opt.best.fail <= opt.baseline.fail + 0.02 + 1e-9, 'optimized not meaningfully less reliable');
@@ -111,13 +111,19 @@ section('determinism: same seeds -> identical stats');
   ok(a.completion.median === b.completion.median && a.completion.mean === b.completion.mean, 'identical stats for identical seeds');
 }
 
-section('on-plan bonus is captured or reported lost (not silently ignored)');
+section('bonus policy: required (all) vs optional');
 {
-  // include a bonus card in the plan; success+lostBonus should account for all runs
-  const bonus = TD.bonusTechs.find((b) => b.parent === 'TECH_SPOKED_WHEEL') || TD.bonusTechs[7];
-  const targets = ['TECH_SPOKED_WHEEL', bonus.id];
-  const r = simulatePlan({ TD, ND, nation: 'NATION_ROME', targets, config: { scholar: true, oracleTurn: null, maxTurns: 400 }, seeds });
-  ok(r.successRate + r.lostBonusRate >= 0.99, `every run either completes or loses the bonus (succ ${r.successRate.toFixed(2)} + lost ${r.lostBonusRate.toFixed(2)})`);
+  // two bonuses that can collide in one hand
+  const targets = ['TECH_STONECUTTING', 'TECH_DIVINATION', 'TECH_ARISTOCRACY',
+    'TECH_STONECUTTING_BONUS_STONE', 'TECH_ARISTOCRACY_BONUS_BORDERS'];
+  const base = { scholar: false, oracleTurn: null, maxTurns: 400 };
+  const req = simulatePlan({ TD, ND, nation: 'NATION_ROME', targets, config: { ...base, bonusPolicy: 'all' }, seeds });
+  const opt = simulatePlan({ TD, ND, nation: 'NATION_ROME', targets, config: { ...base, bonusPolicy: 'optional' }, seeds });
+  ok(req.successRate + req.lostBonusRate >= 0.99, `required: every run completes or loses a bonus (${req.successRate.toFixed(2)}+${req.lostBonusRate.toFixed(2)})`);
+  ok(opt.lostBonusRate === 0, 'optional: a lost bonus is never counted as failure');
+  ok(opt.successRate >= 0.99, 'optional: mains complete ~always');
+  ok(opt.bonusWanted === 2 && opt.bonusKept.mean > 0 && opt.bonusKept.mean <= 2, `optional: reports bonuses kept (${opt.bonusKept.mean.toFixed(2)}/2)`);
+  console.log(`    required ${req.completion.mean?.toFixed(1)} (${(req.successRate * 100).toFixed(0)}% succ) vs optional ${opt.completion.mean?.toFixed(1)} (kept ${opt.bonusKept.mean.toFixed(1)}/2)`);
 }
 
 section('strict mode researches in exact priority order; flexible is no slower');

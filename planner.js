@@ -147,10 +147,16 @@ function chooseResearch(eng, order, rank, config) {
 export function autoPlay(eng, order, config) {
   const rank = new Map(order.map((id, i) => [id, i]));
   const orderSet = new Set(order);
+  // bonus policy: 'all' = bonuses required (a trashed on-plan bonus fails the plan);
+  // 'optional' (default) = mains are the goal, bonuses are grabbed when convenient.
+  const optional = config.bonusPolicy !== 'all';
+  const mains = order.filter((id) => !eng.isBonus(id));
+  const bonuses = order.filter((id) => eng.isBonus(id));
+  const completionSet = (optional && mains.length) ? mains : order;
   const acquiredTurn = {};
   const maxTurns = config.maxTurns || 400;
   let lostBonus = false, guard = 0;
-  const done = () => order.every((id) => eng.state.get(id) === 'acquired');
+  const done = () => completionSet.every((id) => eng.state.get(id) === 'acquired');
 
   while (!done() && guard++ < maxTurns) {
     if (config.oracleTurn && eng.turn === config.oracleTurn) eng.buildOracle();
@@ -162,16 +168,20 @@ export function autoPlay(eng, order, config) {
     eng.nextTurn();
     for (const a of eng.acquiredOrder) if (acquiredTurn[a.id] == null) acquiredTurn[a.id] = a.turn;
 
-    // an on-plan bonus card got trashed -> plan can't complete
-    for (const id of orderSet) if (eng.state.get(id) === 'trashed') { lostBonus = true; break; }
-    if (lostBonus) break;
+    if (!optional) {
+      // required bonuses: a trashed on-plan bonus means the plan can't complete
+      for (const id of orderSet) if (eng.isBonus(id) && eng.state.get(id) === 'trashed') { lostBonus = true; break; }
+      if (lostBonus) break;
+    }
   }
 
   let wasted = 0;
   for (const a of eng.acquiredOrder) if (!orderSet.has(a.id)) wasted += eng.cost(a.id);
   const isDone = done();
-  const completionTurn = isDone ? Math.max(...order.map((id) => acquiredTurn[id] || 0)) : null;
-  return { acquiredTurn, completionTurn, lostBonus, wasted, totalScience: eng.totalScience, done: isDone };
+  const completionTurn = isDone ? Math.max(0, ...completionSet.map((id) => acquiredTurn[id] || 0)) : null;
+  const bonusesGot = bonuses.filter((id) => eng.state.get(id) === 'acquired').length;
+  return { acquiredTurn, completionTurn, lostBonus, wasted, totalScience: eng.totalScience, done: isDone,
+    bonusesWanted: bonuses.length, bonusesGot };
 }
 
 function runOnce(TD, ND, nation, order, config, seed) {
@@ -199,11 +209,16 @@ export function simulatePlan({ TD, ND, nation, targets, config, seeds }) {
     const turns = done.map((r) => r.acquiredTurn[id]).filter((x) => x != null);
     perTarget[id] = { median: median(turns), p10: quantile(turns, 0.1), p90: quantile(turns, 0.9) };
   }
+  const bonusWanted = runs.length ? runs[0].bonusesWanted : 0;
+  const kept = done.map((r) => r.bonusesGot);
   return {
     order,
     runs: runs.length,
+    bonusPolicy: config.bonusPolicy === 'all' ? 'all' : 'optional',
     successRate: done.length / runs.length,
     lostBonusRate: runs.filter((r) => r.lostBonus).length / runs.length,
+    bonusWanted,
+    bonusKept: { mean: mean(kept) ?? 0, rate: bonusWanted ? (mean(kept) ?? 0) / bonusWanted : 1 },
     completion: { median: median(comp), mean: mean(comp), p10: quantile(comp, 0.1), p90: quantile(comp, 0.9) },
     wasted: { median: median(done.map((r) => r.wasted)), mean: mean(done.map((r) => r.wasted)) },
     perTarget,

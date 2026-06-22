@@ -248,6 +248,7 @@ body {
 .plan-input { width: 100%; font-family: ui-monospace, Menlo, monospace; font-size: 13px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); resize: vertical; }
 .plan-config { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin: 12px 0; }
 .plan-nation-note { font-size: 13px; color: var(--ink-soft); font-weight: 600; }
+.bonus-sel { font: inherit; font-size: 13px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); margin-left: 4px; }
 .plan-actions { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
 .plan-go { font: inherit; font-weight: 750; cursor: pointer; border: none; border-radius: 10px; padding: 11px 18px; color: #fff; background: linear-gradient(180deg,#4f7d3e,#3c6330); }
 .plan-go.alt { background: linear-gradient(180deg,#5a4a8c,#3f3168); }
