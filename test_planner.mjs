@@ -81,9 +81,25 @@ section('optimizer improves (or matches) a deliberately bad order');
   const targets = ['TECH_COINAGE', 'TECH_PHALANX', 'TECH_DRAMA', 'TECH_SPOKED_WHEEL', 'TECH_STEEL'];
   const config = { scholar: false, oracleTurn: null, maxTurns: 400 };
   const opt = optimizePlan({ TD, ND, nation: 'NATION_ROME', targets, config, seeds, maxIters: 200 });
-  ok(opt.best.mean <= opt.baseline.mean + 1e-6, `optimized mean <= baseline (${opt.best.mean.toFixed(1)} <= ${opt.baseline.mean.toFixed(1)})`);
+  ok(opt.best.comp <= opt.baseline.comp + 1e-6, `optimized comp <= baseline (${opt.best.comp.toFixed(1)} <= ${opt.baseline.comp.toFixed(1)})`);
   ok(opt.best.order.length >= targets.length, 'optimized order includes the closure');
-  console.log(`    baseline ${opt.baseline.mean.toFixed(1)} → optimized ${opt.best.mean.toFixed(1)} turns (saved ${opt.improvedTurns.toFixed(1)})`);
+  console.log(`    baseline ${opt.baseline.comp.toFixed(1)} → optimized ${opt.best.comp.toFixed(1)} turns (saved ${opt.improvedTurns.toFixed(1)})`);
+}
+
+section('optimizer never returns a slower/less-reliable order (2-bonus regression)');
+{
+  // the reported case: two on-plan bonuses that can collide and fail the plan
+  const targets = ['TECH_DIVINATION', 'TECH_STONECUTTING', 'TECH_STONECUTTING_BONUS_STONE',
+    'TECH_ARISTOCRACY', 'TECH_ARISTOCRACY_BONUS_BORDERS', 'TECH_ADMINISTRATION', 'TECH_RHETORIC'];
+  const config = { scholar: false, oracleTurn: null, maxTurns: 400 };
+  const opt = optimizePlan({ TD, ND, nation: 'NATION_PERSIA', targets, config, seeds });
+  ok(opt.best.comp <= opt.baseline.comp + 1e-6, `optimized comp <= baseline (${opt.best.comp.toFixed(1)} <= ${opt.baseline.comp.toFixed(1)})`);
+  ok(opt.best.fail <= opt.baseline.fail + 0.02 + 1e-9, 'optimized not meaningfully less reliable');
+  const before = simulatePlan({ TD, ND, nation: 'NATION_PERSIA', targets: opt.baseline.targets, config, seeds });
+  const after = simulatePlan({ TD, ND, nation: 'NATION_PERSIA', targets: opt.best.targets, config, seeds });
+  ok((after.completion.mean ?? 1e9) <= (before.completion.mean ?? 1e9) + 1e-6,
+    `shown completion not worse (${after.completion.mean?.toFixed(1)} <= ${before.completion.mean?.toFixed(1)})`);
+  console.log(`    2-bonus: baseline ${before.completion.mean?.toFixed(1)} (${(before.successRate * 100).toFixed(0)}%) → optimized ${after.completion.mean?.toFixed(1)} (${(after.successRate * 100).toFixed(0)}%)`);
 }
 
 section('determinism: same seeds -> identical stats');

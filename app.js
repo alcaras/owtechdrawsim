@@ -11,6 +11,9 @@ const NATIONS = window.nationLookup;
 
 // ---------- icon paths (match owtt conventions) ----------
 const SCI_ICON = 'img/icons/yields/science.png';
+const LAW_ICON = 'img/icons/yields/laws.png';
+const LAWS_BY_TECH = new Map(TD.techs.map((t) => [t.id, (t.unlocks && t.unlocks.laws) || []]));
+const lawsOf = (id) => LAWS_BY_TECH.get(id) || [];
 const techIcon = (id) => `img/icons/techs/${id.replace(/^TECH_/, '').toLowerCase()}.png`;
 const bonusIcon = (iconName) => iconName ? `img/icons/bonus/${iconName.toLowerCase()}.png` : SCI_ICON;
 const crestIcon = (slug) => `img/crests/${slug}.png`;
@@ -139,7 +142,8 @@ function unlockPills(unlocks) {
   const pills = [];
   for (const [kind, arr] of groups) {
     for (const name of (arr || [])) {
-      pills.push(`<span class="pill pill-${kind}">${escapeHtml(name)}</span>`);
+      const ic = kind === 'law' ? `<img class="pill-ic" src="${LAW_ICON}" alt="law" onerror="this.replaceWith('⚖')" />` : '';
+      pills.push(`<span class="pill pill-${kind}">${ic}${escapeHtml(name)}</span>`);
     }
   }
   return pills.length ? `<div class="card-unlocks">${pills.join('')}</div>` : '';
@@ -250,11 +254,18 @@ function render() {
     `<li class="ev ev-${e.type}"><span class="ev-turn">T${e.turn}</span><span class="ev-text">${escapeHtml(e.text)}</span></li>`
   ).join('');
 
-  // acquired ledger
+  // acquired ledger — count, total research science, and law tally (incl. starting techs)
   $('#acqCount').textContent = v.acquired.length;
-  $('#acquired').innerHTML = v.acquired.map((a) =>
-    `<li><span class="acq-turn">T${a.turn}</span><span class="acq-name">${a.isBonus ? '★' : ''}${escapeHtml(a.name)}</span><span class="acq-sci">${a.science}<img src="${SCI_ICON}" alt="" /></span></li>`
-  ).join('');
+  const totalSci = v.acquired.reduce((s, a) => s + a.science, 0);
+  let lawCount = 0;
+  for (const t of TD.techs) if (engine.state.get(t.id) === 'acquired') lawCount += lawsOf(t.id).length;
+  $('#acqSci').innerHTML = totalSci ? `${totalSci}<img src="${SCI_ICON}" alt="science" />` : '';
+  $('#acqLaws').innerHTML = lawCount ? `${lawCount}<img src="${LAW_ICON}" alt="laws" onerror="this.replaceWith('⚖')" />` : '';
+  $('#acquired').innerHTML = v.acquired.map((a) => {
+    const laws = lawsOf(a.id);
+    const lawMark = laws.length ? `<img class="acq-law" src="${LAW_ICON}" alt="law" title="Unlocks ${laws.join(', ')}" onerror="this.replaceWith('⚖')" />` : '';
+    return `<li><span class="acq-turn">T${a.turn}</span><span class="acq-name">${a.isBonus ? '★' : ''}${escapeHtml(a.name)}${lawMark}</span><span class="acq-sci">${a.science}<img src="${SCI_ICON}" alt="" /></span></li>`;
+  }).join('');
 
   // draw pile + discard
   const p = v.piles;
@@ -263,11 +274,14 @@ function render() {
   $('#drawList').innerHTML = p.draw.length
     ? `<div class="pile-row">${p.draw.map(chip).join('')}</div>`
     : '<div class="pile-empty">empty</div>';
-  $('#discardCount').textContent = p.passed.length + p.trashed.length;
-  $('#discardList').innerHTML =
-    (p.passed.length ? `<div class="pile-divider">Passed — reshuffles back</div><div class="pile-row">${p.passed.map(chip).join('')}</div>` : '') +
-    (p.trashed.length ? `<div class="pile-divider lost">Trashed — gone for good</div><div class="pile-row lost">${p.trashed.map(chip).join('')}</div>` : '') +
-    (!p.passed.length && !p.trashed.length ? '<div class="pile-empty">empty</div>' : '');
+  $('#discardCount').textContent = p.passed.length;
+  $('#discardList').innerHTML = p.passed.length
+    ? `<div class="pile-row">${p.passed.map(chip).join('')}</div>`
+    : '<div class="pile-empty">empty</div>';
+  $('#trashedCount').textContent = p.trashed.length;
+  $('#trashedList').innerHTML = p.trashed.length
+    ? `<div class="pile-row lost">${p.trashed.map(chip).join('')}</div>`
+    : '<div class="pile-empty">empty</div>';
 }
 
 function escapeHtml(s) {

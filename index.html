@@ -73,7 +73,9 @@
       </div>
       <ol id="history" class="history"></ol>
       <details class="acquired-wrap" open>
-        <summary>Researched <span id="acqCount" class="acq-count">0</span></summary>
+        <summary>Researched <span id="acqCount" class="acq-count">0</span>
+          <span id="acqSci" class="acq-meta"></span>
+          <span id="acqLaws" class="acq-meta acq-laws"></span></summary>
         <ol id="acquired" class="acquired"></ol>
       </details>
 
@@ -82,8 +84,12 @@
         <div class="pile-body" id="drawList"></div>
       </details>
       <details class="pile-wrap" id="pileDiscard" open>
-        <summary>Discard <span class="pile-count discard" id="discardCount">0</span></summary>
+        <summary>Discard <span class="pile-count discard" id="discardCount">0</span><span class="pile-sub">passed — reshuffles back</span></summary>
         <div class="pile-body" id="discardList"></div>
+      </details>
+      <details class="pile-wrap" id="pileTrashed">
+        <summary>Trashed <span class="pile-count lost-count" id="trashedCount">0</span><span class="pile-sub">bonus cards — gone for good</span></summary>
+        <div class="pile-body" id="trashedList"></div>
       </details>
     </aside>
   </div>

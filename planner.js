@@ -211,15 +211,21 @@ export function simulatePlan({ TD, ND, nation, targets, config, seeds }) {
 }
 
 // ---------- optimizer (CRN + hill climb) ----------
+// Score = mean completion of SUCCESSFUL runs (the same metric the UI shows) plus the
+// failure rate. We optimize for speed but guard reliability, so the optimizer can
+// never return an order that is slower OR less reliable than the input.
 function scoreOrder(TD, ND, nation, targets, config, seeds, byId, startingSet) {
   const order = expandPlan(targets, byId, startingSet);
-  let sum = 0, fails = 0;
-  const penalty = config.maxTurns || 400;
+  let sum = 0, done = 0, fails = 0;
   for (const s of seeds) {
     const r = runOnce(TD, ND, nation, order, config, s);
-    if (r.done) sum += r.completionTurn; else { sum += penalty; fails++; }
+    if (r.done) { sum += r.completionTurn; done++; } else fails++;
   }
-  return { mean: sum / seeds.length, fails, order };
+  return { comp: done ? sum / done : Infinity, fail: fails / seeds.length, order };
+}
+// "a is a strict improvement over b": no worse reliability, and meaningfully faster.
+function beats(a, b) {
+  return a.fail <= b.fail + 0.02 && a.comp < b.comp - 0.25;
 }
 
 export function optimizePlan({ TD, ND, nation, targets, config, seeds, maxIters = 400 }) {
@@ -237,10 +243,10 @@ export function optimizePlan({ TD, ND, nation, targets, config, seeds, maxIters 
   let best = baseline, bestTargets = targets.slice();
   for (const cand of [cheapFirst, dearFirst]) {
     const e = sc(cand);
-    if (e.mean < best.mean - 1e-9) { best = e; bestTargets = cand.slice(); }
+    if (beats(e, best)) { best = e; bestTargets = cand.slice(); }
   }
 
-  // hill climb: move one target to another position, accept improvements
+  // hill climb: move one target to another position, accept only strict improvements
   let iters = 0, improved = true;
   while (improved && iters < maxIters) {
     improved = false;
@@ -252,15 +258,15 @@ export function optimizePlan({ TD, ND, nation, targets, config, seeds, maxIters 
         cand.splice(j, 0, x);
         const e = sc(cand);
         iters++;
-        if (e.mean < best.mean - 1e-9) { best = e; bestTargets = cand; improved = true; }
+        if (beats(e, best)) { best = e; bestTargets = cand; improved = true; }
       }
     }
   }
 
   return {
-    baseline: { targets, order: baseline.order, mean: baseline.mean, fails: baseline.fails },
-    best: { targets: bestTargets, order: best.order, mean: best.mean, fails: best.fails },
-    improvedTurns: baseline.mean - best.mean,
+    baseline: { targets, order: baseline.order, comp: baseline.comp, fail: baseline.fail },
+    best: { targets: bestTargets, order: best.order, comp: best.comp, fail: best.fail },
+    improvedTurns: baseline.comp - best.comp,
     iters,
   };
 }
