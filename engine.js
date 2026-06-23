@@ -350,6 +350,7 @@ export class DrawEngine {
 
   // Snapshot for the UI.
   view() {
+    const pl = this.piles();
     return {
       nation: this.nation,
       seed: this.seed,
@@ -380,7 +381,10 @@ export class DrawEngine {
       }),
       acquired: this.acquiredOrder.map((a) => ({ ...a, name: this.get(a.id).name, isBonus: this.isBonus(a.id) })),
       log: this.log,
-      piles: this.piles(),
+      piles: pl,
+      // cards still in the deck (drawable now + locked behind prereqs + passed), i.e.
+      // everything not in hand / acquired / trashed.
+      deckSize: pl.draw.length + pl.locked.length + pl.passed.length,
       done: this.isDone(),
     };
   }

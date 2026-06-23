@@ -24,6 +24,7 @@ const $ = (sel) => document.querySelector(sel);
 
 // Cards a tech adds to the draw pool when researched: hard = main techs that list it
 // as a prereq; soft = bonus cards whose parent is this tech.
+const TECH_BY_ID = new Map(TD.techs.map((t) => [t.id, t]));
 const DOWNSTREAM = (() => {
   const hard = new Map(), soft = new Map();
   const push = (m, k, v) => { if (!m.has(k)) m.set(k, []); m.get(k).push(v); };
@@ -31,9 +32,18 @@ const DOWNSTREAM = (() => {
   for (const b of TD.bonusTechs) if (b.parent) push(soft, b.parent, b.id);
   return { hard, soft };
 })();
+// Only count a downstream tech if researching THIS one actually makes it drawable —
+// i.e. all its OTHER prerequisites are already acquired (conditional/multi-prereq unlocks).
 function opensHTML(id) {
-  const h = (DOWNSTREAM.hard.get(id) || []).length;
-  const s = (DOWNSTREAM.soft.get(id) || []).length;
+  const acq = (p) => engine.state.get(p) === 'acquired';
+  const h = (DOWNSTREAM.hard.get(id) || []).filter((cid) => {
+    const c = TECH_BY_ID.get(cid);
+    return c && (c.prereqs || []).every((p) => p === id || acq(p));
+  }).length;
+  const s = (DOWNSTREAM.soft.get(id) || []).filter((bid) => {
+    const st = engine.state.get(bid);
+    return st !== 'acquired' && st !== 'trashed';
+  }).length;
   let out = '';
   if (h) out += `<span class="op op-hard" title="Researching this adds ${h} new tech card${h > 1 ? 's' : ''} to your draw pool">⊞ ${h}</span>`;
   if (s) out += `<span class="op op-soft" title="Adds ${s} bonus card${s > 1 ? 's' : ''} to your draw pool">★ ${s}</span>`;
@@ -202,6 +212,7 @@ function render() {
     $('#statSpt').textContent = '+' + v.sciencePerTurn;
   }
   $('#statTotal').textContent = v.totalScience;
+  $('#statDeck').textContent = v.deckSize;
   $('#seedLabel').textContent = 'seed ' + v.seed;
 
   // scholar / oracle controls

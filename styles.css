@@ -294,3 +294,42 @@ body {
   .ledger { border-left: none; border-top: 1px solid var(--line); max-height: 60vh; }
   .acquired-wrap { max-height: none; }
 }
+
+/* phones / narrow */
+@media (max-width: 720px) {
+  .topbar { gap: 8px 10px; padding: 8px 12px; }
+  .topbar-spacer { display: none; }            /* controls wrap under the stats */
+  .crest-btn { padding: 5px 9px 5px 5px; gap: 7px; }
+  .crest { width: 30px; height: 30px; }
+  .top-nation { font-size: 14px; }
+  .stat-num { font-size: 17px; }
+  .stat-lbl { font-size: 9.5px; }
+  .toggles { gap: 8px; flex-wrap: wrap; }
+  .switch input { width: 34px; height: 20px; }
+  .switch input::after { width: 16px; height: 16px; }
+  .switch input:checked::after { transform: translateX(14px); }
+  .oracle-btn, .restart-btn, .plan-btn, .hist-btn { padding: 6px 9px; font-size: 13px; }
+  .oracle-plus { display: none; }
+  .board { padding: 12px; gap: 12px; }
+  .hand { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .card { min-height: 0; padding: 11px 11px 13px; gap: 6px; }
+  .card-icon { width: 38px; height: 38px; }
+  .card-icon img { max-width: 38px; max-height: 38px; }
+  .card-name { font-size: 14px; }
+  .research-name { font-size: 16px; white-space: normal; }
+  .hand-actions { gap: 10px; }
+  .redraw-btn { padding: 11px 13px; }
+  .next-btn { font-size: 17px; padding: 13px; }
+  .modal { padding: 10px; }
+  .modal-card { width: 97vw; max-height: 94vh; }
+  .modal-body { padding: 14px; }
+  .plan-config { gap: 8px 12px; }
+}
+
+@media (max-width: 440px) {
+  .stat-lbl { display: none; }                 /* numbers only — saves a row */
+  .stat { line-height: 1.05; }
+  .hand { grid-template-columns: 1fr 1fr; }
+  .pill { font-size: 10px; padding: 2px 6px; }
+  .plan-go { padding: 10px 14px; font-size: 14px; }
+}
