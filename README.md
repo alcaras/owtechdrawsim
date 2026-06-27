@@ -15,9 +15,11 @@ python3 -m http.server 8731   # then visit http://localhost:8731/
 
 1. Pick a nation. Your starting techs are pre-researched.
 2. You're dealt a hand of cards. **Click one** to start researching it.
-3. **Next turn** adds science to your current research, using the real
-   per-turn **science curve from [owglick](../owglick)** (winning-game data, per
-   nation where available, otherwise the all-nations aggregate).
+3. **Research to completion** (primary) advances turns — using the real per-turn
+   **science curve from [owglick](../owglick)** (winning-game data, per nation where
+   available, else the all-nations aggregate) — until the selected tech finishes, as
+   one undo step. **+1 turn** advances a single turn for juggling carry science.
+   (Keys: Space/Enter = complete, `n` = +1 turn, `r` = redraw.)
 4. When a tech finishes, the rest of the hand is discarded and a **fresh hand** is
    dealt — exactly like the game (`doTechsAvailable` fires on acquisition, not every
    turn). Leftover **carry** science doesn't commit to a card until you press Next

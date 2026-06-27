@@ -165,16 +165,25 @@ body {
 .prog-solid { background: var(--gold); }
 .prog-prev { background: repeating-linear-gradient(45deg, rgba(184,146,63,.55), rgba(184,146,63,.55) 3px, rgba(184,146,63,.18) 3px, rgba(184,146,63,.18) 6px); }
 
-.hand-actions { display: flex; gap: 14px; align-items: center; }
-.next-btn {
+.hand-actions { display: flex; gap: 12px; align-items: stretch; }
+/* primary: research the selected tech to completion */
+.finish-btn {
   flex: 1; font: inherit; font-size: 19px; font-weight: 800; letter-spacing: .3px;
   padding: 15px; border: none; border-radius: 14px; cursor: pointer;
   color: #fff; background: linear-gradient(180deg, #4f7d3e, #3c6330);
   box-shadow: var(--shadow); transition: filter .12s, transform .06s;
 }
-.next-btn:hover:not(:disabled) { filter: brightness(1.07); }
-.next-btn:active:not(:disabled) { transform: translateY(1px); }
-.next-btn:disabled { background: #9aa595; cursor: default; }
+.finish-btn:hover:not(:disabled) { filter: brightness(1.07); }
+.finish-btn:active:not(:disabled) { transform: translateY(1px); }
+.finish-btn:disabled { background: #9aa595; cursor: default; }
+/* secondary: advance a single turn (juggling) */
+.next-btn {
+  font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  padding: 0 16px; border: 1px solid rgba(0,0,0,.18); border-radius: 14px;
+  color: var(--ink); background: var(--card); white-space: nowrap;
+}
+.next-btn:hover:not(:disabled) { box-shadow: var(--shadow); }
+.next-btn:disabled { opacity: .45; cursor: default; }
 .redraw-btn {
   font: inherit; font-weight: 700; cursor: pointer; color: var(--bonus);
   background: var(--bonus-bg); border: 1.5px dashed #cf9f63; border-radius: 14px; padding: 13px 18px;

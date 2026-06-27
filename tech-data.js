@@ -1,7 +1,7 @@
 // Auto-generated tech data for the redesigned tech tree — do not edit by hand.
 // Regenerate via `python3 generate_tech_tree.py --xml-dir XML/Infos`.
 
-window.gameVersion = "Old World v1.0.83499 (May 06, 2026) | Generated Jun 01, 2026";
+window.gameVersion = "Old World v1.0.83788 (Jun 03, 2026) | Generated Jun 27, 2026";
 
 window.techData = {
   techs: [
@@ -10,13 +10,13 @@ window.techData = {
     { id: "TECH_TRAPPING", name: "Trapping", cost: 100, column: 0, row: 7, prereqs: [], unlocks: { units: ["Slinger"], improvements: ["Camp"], laws: [], projects: [] } },
     { id: "TECH_DIVINATION", name: "Divination", cost: 100, column: 0, row: 8, prereqs: [], unlocks: { units: [], improvements: ["Shrine"], laws: [], projects: [] } },
     { id: "TECH_ADMINISTRATION", name: "Administration", cost: 100, column: 0, row: 10, prereqs: [], unlocks: { units: [], improvements: ["Granary"], laws: [], projects: ["Treasury"] } },
-    { id: "TECH_LABOR_FORCE", name: "Labor Force", cost: 150, column: 1, row: 1, prereqs: ["TECH_IRONWORKING"], unlocks: { units: [], improvements: [], laws: ["Slavery/Freedom"], projects: [] } },
-    { id: "TECH_HUSBANDRY", name: "Husbandry", cost: 150, column: 1, row: 3, prereqs: ["TECH_IRONWORKING"], unlocks: { units: [], improvements: ["Pasture"], laws: [], projects: [] } },
-    { id: "TECH_DRAMA", name: "Drama", cost: 150, column: 1, row: 4, prereqs: ["TECH_STONECUTTING"], unlocks: { units: [], improvements: ["Odeon"], laws: [], projects: [] } },
-    { id: "TECH_POLIS", name: "Polis", cost: 150, column: 1, row: 5, prereqs: ["TECH_STONECUTTING"], unlocks: { units: [], improvements: ["Hamlet"], laws: [], projects: ["Walls"] } },
-    { id: "TECH_MILITARY_DRILL", name: "Military Drill", cost: 150, column: 1, row: 7, prereqs: ["TECH_TRAPPING"], unlocks: { units: [], improvements: ["Barracks"], laws: [], projects: [] } },
-    { id: "TECH_ARISTOCRACY", name: "Aristocracy", cost: 150, column: 1, row: 8, prereqs: ["TECH_DIVINATION"], unlocks: { units: [], improvements: ["Kushite Pyramids"], laws: ["Centralization/Vassalage"], projects: [] } },
-    { id: "TECH_RHETORIC", name: "Rhetoric", cost: 150, column: 1, row: 10, prereqs: ["TECH_ADMINISTRATION"], unlocks: { units: [], improvements: [], laws: ["Epics/Exploration"], projects: ["Forum"] } },
+    { id: "TECH_LABOR_FORCE", name: "Labor Force", cost: 160, column: 1, row: 1, prereqs: ["TECH_IRONWORKING"], unlocks: { units: [], improvements: [], laws: ["Slavery/Freedom"], projects: [] } },
+    { id: "TECH_HUSBANDRY", name: "Husbandry", cost: 160, column: 1, row: 3, prereqs: ["TECH_IRONWORKING"], unlocks: { units: [], improvements: ["Pasture"], laws: [], projects: [] } },
+    { id: "TECH_DRAMA", name: "Drama", cost: 160, column: 1, row: 4, prereqs: ["TECH_STONECUTTING"], unlocks: { units: [], improvements: ["Odeon"], laws: [], projects: [] } },
+    { id: "TECH_POLIS", name: "Polis", cost: 160, column: 1, row: 5, prereqs: ["TECH_STONECUTTING"], unlocks: { units: [], improvements: ["Hamlet"], laws: [], projects: ["Walls"] } },
+    { id: "TECH_MILITARY_DRILL", name: "Military Drill", cost: 160, column: 1, row: 7, prereqs: ["TECH_TRAPPING"], unlocks: { units: [], improvements: ["Barracks"], laws: [], projects: [] } },
+    { id: "TECH_ARISTOCRACY", name: "Aristocracy", cost: 160, column: 1, row: 8, prereqs: ["TECH_DIVINATION"], unlocks: { units: [], improvements: ["Kushite Pyramids"], laws: ["Centralization/Vassalage"], projects: [] } },
+    { id: "TECH_RHETORIC", name: "Rhetoric", cost: 160, column: 1, row: 10, prereqs: ["TECH_ADMINISTRATION"], unlocks: { units: [], improvements: [], laws: ["Epics/Exploration"], projects: ["Forum"] } },
     { id: "TECH_NAVIGATION", name: "Navigation", cost: 250, column: 2, row: 0, prereqs: ["TECH_LABOR_FORCE"], unlocks: { units: ["Bireme"], improvements: [], laws: ["Colonies/Serfdom"], projects: [] } },
     { id: "TECH_PHALANX", name: "Phalanx", cost: 250, column: 2, row: 2, prereqs: ["TECH_LABOR_FORCE"], unlocks: { units: ["Spearman"], improvements: [], laws: [], projects: [] } },
     { id: "TECH_SPOKED_WHEEL", name: "Spoked Wheel", cost: 250, column: 2, row: 3, prereqs: ["TECH_HUSBANDRY"], unlocks: { units: ["Chariot"], improvements: [], laws: [], projects: [] } },
@@ -58,9 +58,9 @@ window.techData = {
   bonusTechs: [
     { id: "TECH_STONECUTTING_BONUS_STONE", name: "Stone Boost", cost: 50, parent: "TECH_STONECUTTING", bonus: "+200 Stone", iconName: "BOOST_STONE" },
     { id: "TECH_ADMINISTRATION_BONUS_WORKER", name: "Free Worker", cost: 50, parent: "TECH_ADMINISTRATION", bonus: "+1 Worker", iconName: "BONUS_WORKER" },
-    { id: "TECH_HUSBANDRY_BONUS_FOOD", name: "Food Boost", cost: 75, parent: "TECH_HUSBANDRY", bonus: "+200 Food", iconName: "BONUS_FOOD" },
-    { id: "TECH_DRAMA_BONUS_SETTLER", name: "Free Settler", cost: 75, parent: "TECH_DRAMA", bonus: "+1 Settler", iconName: "BONUS_SETTLER" },
-    { id: "TECH_ARISTOCRACY_BONUS_BORDERS", name: "Border Boost", cost: 75, parent: "TECH_ARISTOCRACY", bonus: "+6 Border Growth / City", iconName: "BOOST_BORDER" },
+    { id: "TECH_HUSBANDRY_BONUS_FOOD", name: "Food Boost", cost: 80, parent: "TECH_HUSBANDRY", bonus: "+200 Food", iconName: "BONUS_FOOD" },
+    { id: "TECH_DRAMA_BONUS_SETTLER", name: "Free Settler", cost: 80, parent: "TECH_DRAMA", bonus: "+1 Settler", iconName: "BONUS_SETTLER" },
+    { id: "TECH_ARISTOCRACY_BONUS_BORDERS", name: "Border Boost", cost: 80, parent: "TECH_ARISTOCRACY", bonus: "+6 Border Growth / City", iconName: "BOOST_BORDER" },
     { id: "TECH_NAVIGATION_BONUS_BIREME", name: "Free Bireme", cost: 125, parent: "TECH_STEEL", bonus: "+1 Bireme", iconName: "BONUS_BIREME" },
     { id: "TECH_PHALANX_BONUS_ORDERS", name: "Orders Boost", cost: 125, parent: "TECH_PHALANX", bonus: "+20 Orders", iconName: "BOOST_ORDERS" },
     { id: "TECH_SPOKED_WHEEL_BONUS_CHARIOT", name: "Free Chariot", cost: 125, parent: "TECH_SOVEREIGNTY", bonus: "+1 Chariot", iconName: "BONUS_CHARIOT" },
@@ -75,7 +75,7 @@ window.techData = {
     { id: "TECH_COMPOSITE_BOW_BONUS_ARCHER", name: "Free Archer", cost: 125, parent: "TECH_FORESTRY", bonus: "+1 Archer", iconName: "BONUS_ARCHER" },
     { id: "TECH_MACHINERY_BONUS_ONAGER", name: "Free Onager", cost: 200, parent: "TECH_PORTCULLIS", bonus: "+1 Onager", iconName: "BONUS_ONAGER" },
     { id: "TECH_SCHOLARSHIP_BONUS_SCIENTIST", name: "Free Court Scholar", cost: 350, parent: "TECH_SCHOLARSHIP", bonus: "+1 Court Scholar", iconName: "BONUS_COURTIER" },
-    { id: "TECH_STIRRUPS_BONUS_HORSEMAN", name: "Free Horseman", cost: 200, parent: "TECH_LAND_CONSOLIDATION", bonus: "+1 Horseman", iconName: "BONUS_HORSEMAN" },
+    { id: "TECH_STIRRUPS_BONUS_HORSEMAN", name: "Free Horseman", cost: 200, parent: "TECH_COINAGE", bonus: "+1 Horseman", iconName: "BONUS_HORSEMAN" },
     { id: "TECH_STIRRUPS_BONUS_HORSE_ARCHER", name: "Free Horse Archer", cost: 200, parent: "TECH_COMPOSITE_BOW", bonus: "+1 Horse Archer", iconName: "BONUS_HORSE_ARCHER" },
     { id: "TECH_MANOR_BONUS_GOODS", name: "Goods Boost", cost: 200, parent: "TECH_MACHINERY", bonus: "+400 Iron, +400 Stone, +400 Wood", iconName: "BONUS_GOODS" },
     { id: "TECH_BATTLELINE_BONUS_SOLDIER", name: "Free Court Soldier", cost: 350, parent: "TECH_BATTLELINE", bonus: "+1 Court Soldier", iconName: "BONUS_COURTIER" },
@@ -104,7 +104,7 @@ window.techData = {
     { id: "TECH_HITTITE_CHARIOT_2_BONUS", name: "Free Three Man Chariot", cost: 700, parent: "", bonus: "+2 Three Man Chariot", nation: "NATION_HITTITE", cultureRequired: "CULTURE_LEGENDARY", iconName: "BONUS_THREE_MAN_CHARIOT" },
     { id: "TECH_MEDJAY_ARCHER_BONUS", name: "Free Medjay Archer", cost: 250, parent: "", bonus: "+2 Medjay Archer", nation: "NATION_KUSH", cultureRequired: "CULTURE_STRONG", iconName: "BONUS_NAPATAN_ARCHER" },
     { id: "TECH_BEJA_ARCHER_BONUS", name: "Free Beja Archer", cost: 700, parent: "", bonus: "+2 Beja Archer", nation: "NATION_KUSH", cultureRequired: "CULTURE_LEGENDARY", iconName: "BONUS_MEROITIC_ARCHER" },
-    { id: "TECH_DMT_WARRIOR_BONUS", name: "Free D'mt Warrior", cost: 250, parent: "", bonus: "+1 D'mt Warrior", nation: "NATION_AKSUM", cultureRequired: "CULTURE_STRONG", iconName: "BONUS_DMT_WARRIOR" },
+    { id: "TECH_DMT_WARRIOR_BONUS", name: "Free D'mt Warrior", cost: 250, parent: "", bonus: "+2 D'mt Warrior", nation: "NATION_AKSUM", cultureRequired: "CULTURE_STRONG", iconName: "BONUS_DMT_WARRIOR" },
     { id: "TECH_SHOTELAI_BONUS", name: "Free Shotelai", cost: 700, parent: "", bonus: "+2 Shotelai", nation: "NATION_AKSUM", cultureRequired: "CULTURE_LEGENDARY", iconName: "BONUS_SHOTELAI" },
     { id: "TECH_RESOURCE_PORCELAIN_BONUS", name: "Free Porcelain", cost: 200, parent: "TECH_COINAGE", bonus: "+2 Porcelain", iconName: "TECH_PORCELAIN" },
     { id: "TECH_RESOURCE_EXOTIC_FUR_BONUS", name: "Free Exotic Fur", cost: 125, parent: "TECH_SPOKED_WHEEL", bonus: "+1 Exotic Furs", iconName: "TECH_EXOTIC_FUR" },

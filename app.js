@@ -256,6 +256,7 @@ function render() {
   // actions
   $('#redrawBtn').disabled = !v.canRedraw;
   $('#nextBtn').disabled = !v.canEndTurn;
+  $('#finishBtn').disabled = !v.canEndTurn;
   $('#undoBtn').disabled = !undoStack.length;
   $('#redoBtn').disabled = !redoStack.length;
 
@@ -299,6 +300,17 @@ function escapeHtml(s) {
 }
 
 // ---------- wire controls ----------
+// Auto-advance turns until the currently-selected tech completes (one undo step).
+function finishTech() {
+  if (!engine.currentResearch) return;
+  act(() => {
+    const target = engine.currentResearch;
+    let guard = 0;
+    while (engine.currentResearch === target && engine.canEndTurn() && guard++ < 2000) engine.nextTurn();
+    return true;
+  });
+}
+$('#finishBtn').addEventListener('click', finishTech);
 $('#nextBtn').addEventListener('click', () => act(() => engine.nextTurn()));
 $('#redrawBtn').addEventListener('click', () => act(() => engine.redraw()));
 $('#oracleBtn').addEventListener('click', () => act(() => engine.buildOracle()));
@@ -315,7 +327,9 @@ document.addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
     e.preventDefault(); e.shiftKey ? redo() : undo();
   } else if (e.code === 'Space' || e.code === 'Enter') {
-    e.preventDefault(); if (engine.canEndTurn()) act(() => engine.nextTurn());
+    e.preventDefault(); if (engine.canEndTurn()) finishTech();   // research current tech to completion
+  } else if (e.key === 'n' && engine.canEndTurn()) {
+    act(() => engine.nextTurn());                                // single turn
   } else if (e.key === 'r' && engine.view().canRedraw) {
     act(() => engine.redraw());
   }
