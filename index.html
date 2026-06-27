@@ -106,6 +106,9 @@
       <div class="modal-body">
         <p class="modal-intro">Paste an <strong>owtt</strong> share URL (or a list of tech ids / owtt <code>?o=</code> indices). The plan is simulated the way the game deals cards — priority order, redraw digging, bonus burns — over many random draws.</p>
         <textarea id="planInput" class="plan-input" rows="3" placeholder="https://…/?n=10&o=13,14,7,-8   — or —   TECH_PHALANX, TECH_SPOKED_WHEEL"></textarea>
+        <div class="plan-source">
+          <button id="planFromGame" type="button" class="plan-from-game">⤵ Use my current research path</button>
+        </div>
         <div class="plan-config">
           <label class="opt"><input type="checkbox" id="planScholar" /> Scholar</label>
           <label class="opt" title="Strict: chase your #1-priority tech next, redrawing past lower-priority cards in hand. Off = flexible: take whatever wanted card appears (usually faster).">

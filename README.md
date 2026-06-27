@@ -69,8 +69,10 @@ culture-level system) are excluded from the draw pool. Tech prereqs use the
 
 Click **📋 Plan & Optimize** to analyze a research plan instead of playing by hand.
 
-- **Paste a plan** — an owtt share URL (`?n=…&o=…`), a raw `?o=` index list, or a
-  comma list of tech ids. Prerequisites are auto-inserted (cheapest-first).
+- **Pick a plan** — paste an owtt share URL (`?n=…&o=…`), a raw `?o=` index list, or a
+  comma list of tech ids; **or** pull in the techs you just researched in the sim with
+  **"Use my current research path"** (auto-filled when you open the panel after playing).
+  Prerequisites are auto-inserted (cheapest-first).
 - **Simulate** runs the plan over many random draws under a faithful auto-player:
   take the highest-priority *wanted* card in hand (bonus before main, since bonuses
   burn); when nothing wanted is in hand, **dig** — redraw with Scholar (banks

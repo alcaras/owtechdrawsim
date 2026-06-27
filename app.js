@@ -358,12 +358,28 @@ function planSeeds() {
   return Array.from({ length: n }, (_, i) => i + 1);
 }
 
+// The techs you've researched this game, in the order you picked them.
+function currentPathIds() {
+  return engine && engine.acquiredOrder ? engine.acquiredOrder.map((a) => a.id) : [];
+}
+function fillFromGame() {
+  const ids = currentPathIds();
+  if (!ids.length) return;
+  $('#planInput').value = ids.join(', ');
+  $('#planNationNote').textContent = `Nation: ${nationName(engine.nation)} (current) · ${ids.length} techs from your game`;
+}
+
 function openPlan() {
   // prefill from current game
   if (engine) {
     $('#planScholar').checked = engine.scholar;
     if (engine.oracleBuiltTurn != null) $('#planOracle').value = engine.oracleBuiltTurn;
   }
+  const hasPath = currentPathIds().length > 0;
+  $('#planFromGame').disabled = !hasPath;
+  $('#planFromGame').style.display = hasPath ? '' : 'none';
+  // auto-fill with your played path when the box is empty
+  if (hasPath && !$('#planInput').value.trim()) fillFromGame();
   $('#planModal').hidden = false;
   $('#planInput').focus();
 }
@@ -452,6 +468,7 @@ function runOptimize() {
 }
 
 $('#planBtn').addEventListener('click', openPlan);
+$('#planFromGame').addEventListener('click', fillFromGame);
 $('#planClose').addEventListener('click', closePlan);
 $('#planModal').addEventListener('click', (e) => { if (e.target.id === 'planModal') closePlan(); });
 $('#planSimBtn').addEventListener('click', runSimulate);
