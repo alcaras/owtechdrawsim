@@ -444,7 +444,9 @@ function runSimulate() {
     const s = simulatePlan({ TD, ND, nation, targets, config: planConfig(), seeds: planSeeds() });
     $('#planResults').innerHTML = `
       <h3>Simulation — your order</h3>
-      <div class="seq-label">Projected research order — the turn each tech typically completes (prereqs auto-inserted):</div>
+      <div class="seq-label">Priority queue — the order the sim prefers (grab the highest-ranked available card; prereqs auto-inserted):</div>
+      ${pillRow(s.order)}
+      <div class="seq-label">Likely research order — the turn each tech typically completes:</div>
       ${pillRow(s.order, s.acqMedian)}
       ${statsBlock(s)}`;
   });
@@ -469,11 +471,16 @@ function runOptimize() {
     $('#planResults').innerHTML = `
       <h3>Optimized order ${badge}</h3>
       ${note}
-      <div class="seq-label">Projected research order — the turn each tech typically completes:</div>
+      <div class="seq-label">Optimized priority queue — what the sim prefers:</div>
+      ${pillRow(opt.best.order)}
+      <div class="seq-label">Likely research order — the turn each tech typically completes:</div>
       ${pillRow(opt.best.order, after.acqMedian)}
       ${statsBlock(after)}
       <div class="owtt-out"><span>Optimized priority for owtt:</span><code id="owttCode">${escapeHtml(owtt)}</code><button id="owttCopy" class="copy-btn">Copy</button></div>
-      <details class="cmp"><summary>vs. your original order (${before.completion.mean?.toFixed(1)} turns mean)</summary>${pillRow(before.order, before.acqMedian)}${statsBlock(before)}</details>`;
+      <details class="cmp"><summary>vs. your original order (${before.completion.mean?.toFixed(1)} turns mean)</summary>
+        <div class="seq-label">Priority queue:</div>${pillRow(before.order)}
+        <div class="seq-label">Likely research order:</div>${pillRow(before.order, before.acqMedian)}
+        ${statsBlock(before)}</details>`;
     const copyBtn = $('#owttCopy');
     if (copyBtn) copyBtn.addEventListener('click', () => { navigator.clipboard?.writeText(owtt); copyBtn.textContent = 'Copied ✓'; });
   });
