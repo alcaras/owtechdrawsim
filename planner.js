@@ -209,6 +209,10 @@ export function simulatePlan({ TD, ND, nation, targets, config, seeds }) {
     const turns = done.map((r) => r.acquiredTurn[id]).filter((x) => x != null);
     perTarget[id] = { median: median(turns), p10: quantile(turns, 0.1), p90: quantile(turns, 0.9) };
   }
+  // median acquisition turn for EVERY tech in the order (incl. auto-inserted prereqs),
+  // so the UI can show a feasible research sequence rather than the raw priority rank.
+  const acqMedian = {};
+  for (const id of order) acqMedian[id] = median(done.map((r) => r.acquiredTurn[id]).filter((x) => x != null));
   const bonusWanted = runs.length ? runs[0].bonusesWanted : 0;
   const kept = done.map((r) => r.bonusesGot);
   return {
@@ -222,6 +226,7 @@ export function simulatePlan({ TD, ND, nation, targets, config, seeds }) {
     completion: { median: median(comp), mean: mean(comp), p10: quantile(comp, 0.1), p90: quantile(comp, 0.9) },
     wasted: { median: median(done.map((r) => r.wasted)), mean: mean(done.map((r) => r.wasted)) },
     perTarget,
+    acqMedian,
   };
 }
 
@@ -255,9 +260,13 @@ export function optimizePlan({ TD, ND, nation, targets, config, seeds, maxIters 
   const cheapFirst = [...targets].sort((a, b) => cost(a) - cost(b));
   const dearFirst = [...targets].sort((a, b) => cost(b) - cost(a));
   const baseline = sc(targets);
+  // track the slowest ordering we see, to report how much order can possibly matter
+  let worstComp = baseline.comp;
+  const track = (e) => { if (Number.isFinite(e.comp) && e.comp > worstComp) worstComp = e.comp; return e; };
+
   let best = baseline, bestTargets = targets.slice();
   for (const cand of [cheapFirst, dearFirst]) {
-    const e = sc(cand);
+    const e = track(sc(cand));
     if (beats(e, best)) { best = e; bestTargets = cand.slice(); }
   }
 
@@ -271,7 +280,7 @@ export function optimizePlan({ TD, ND, nation, targets, config, seeds, maxIters 
         const cand = bestTargets.slice();
         const [x] = cand.splice(i, 1);
         cand.splice(j, 0, x);
-        const e = sc(cand);
+        const e = track(sc(cand));
         iters++;
         if (beats(e, best)) { best = e; bestTargets = cand; improved = true; }
       }
@@ -282,6 +291,8 @@ export function optimizePlan({ TD, ND, nation, targets, config, seeds, maxIters 
     baseline: { targets, order: baseline.order, comp: baseline.comp, fail: baseline.fail },
     best: { targets: bestTargets, order: best.order, comp: best.comp, fail: best.fail },
     improvedTurns: baseline.comp - best.comp,
+    headroom: Number.isFinite(worstComp) && Number.isFinite(best.comp) ? worstComp - best.comp : 0,
+    changed: JSON.stringify(bestTargets) !== JSON.stringify(targets),
     iters,
   };
 }

@@ -403,10 +403,15 @@ function getPlanTargets() {
   return { targets: parsed.order, nation };
 }
 
-function pillRow(ids) {
-  return `<div class="seq">${ids.map((id, i) =>
-    `<span class="seq-item${isBonusId(id) ? ' seq-bonus' : ''}"><b>${i + 1}</b>${isBonusId(id) ? '★' : ''}${escapeHtml(techName(id))}<i>${techCost(id)}</i></span>`
-  ).join('')}</div>`;
+// Render the order as a feasible research sequence: sorted by when each tech actually
+// completes (median turn), so deep techs sit at their real position — not the raw
+// priority rank (which can put a deep tech "first" because it's high-priority).
+function pillRow(ids, turns) {
+  const seq = turns ? [...ids].sort((a, b) => (turns[a] ?? 1e9) - (turns[b] ?? 1e9)) : ids;
+  return `<div class="seq">${seq.map((id, i) => {
+    const label = turns ? (turns[id] != null ? `T${Math.round(turns[id])}` : '—') : techCost(id);
+    return `<span class="seq-item${isBonusId(id) ? ' seq-bonus' : ''}" title="${escapeHtml(techName(id))} · cost ${techCost(id)}"><b>${i + 1}</b>${isBonusId(id) ? '★' : ''}${escapeHtml(techName(id))}<i>${label}</i></span>`;
+  }).join('')}</div>`;
 }
 
 function statsBlock(s) {
@@ -439,8 +444,8 @@ function runSimulate() {
     const s = simulatePlan({ TD, ND, nation, targets, config: planConfig(), seeds: planSeeds() });
     $('#planResults').innerHTML = `
       <h3>Simulation — your order</h3>
-      <div class="seq-label">Priority (prereqs auto-inserted):</div>
-      ${pillRow(s.order)}
+      <div class="seq-label">Projected research order — the turn each tech typically completes (prereqs auto-inserted):</div>
+      ${pillRow(s.order, s.acqMedian)}
       ${statsBlock(s)}`;
   });
 }
@@ -454,14 +459,21 @@ function runOptimize() {
     const before = simulatePlan({ TD, ND, nation, targets: opt.baseline.targets, config, seeds });
     const after = simulatePlan({ TD, ND, nation, targets: opt.best.targets, config, seeds });
     const saved = (before.completion.mean ?? 0) - (after.completion.mean ?? 0);
+    const headroom = opt.headroom ?? 0;
+    const badge = (opt.changed && saved > 0.1)
+      ? `<span class="saved">− ${saved.toFixed(1)} turns faster</span>`
+      : `<span class="saved flat">✓ your order is already optimal</span>`;
+    // why order has limited effect: completion is mostly science-bound
+    const note = `<div class="opt-note">Across all orderings, completion only swings <b>~${headroom.toFixed(1)} turns</b> — finishing a set is mostly <i>science-bound</i> (you accumulate roughly the sum of tech costs regardless of order). For bigger ordering effects, use <b>Strict order</b>, or include early science techs (Divination, Scholarship…) whose income compounds.</div>`;
     const owtt = encodeOwttOrder(opt.best.order, TD, nation, NATIONS);
     $('#planResults').innerHTML = `
-      <h3>Optimized order ${saved > 0.5 ? `<span class="saved">− ${saved.toFixed(1)} turns faster</span>` : '<span class="saved flat">≈ already near-optimal</span>'}</h3>
-      <div class="seq-label">Recommended priority:</div>
-      ${pillRow(opt.best.order)}
+      <h3>Optimized order ${badge}</h3>
+      ${note}
+      <div class="seq-label">Projected research order — the turn each tech typically completes:</div>
+      ${pillRow(opt.best.order, after.acqMedian)}
       ${statsBlock(after)}
-      <div class="owtt-out"><span>Paste back into owtt:</span><code id="owttCode">${escapeHtml(owtt)}</code><button id="owttCopy" class="copy-btn">Copy</button></div>
-      <details class="cmp"><summary>vs. your original order (${before.completion.mean?.toFixed(1)} turns mean)</summary>${pillRow(before.order)}${statsBlock(before)}</details>`;
+      <div class="owtt-out"><span>Optimized priority for owtt:</span><code id="owttCode">${escapeHtml(owtt)}</code><button id="owttCopy" class="copy-btn">Copy</button></div>
+      <details class="cmp"><summary>vs. your original order (${before.completion.mean?.toFixed(1)} turns mean)</summary>${pillRow(before.order, before.acqMedian)}${statsBlock(before)}</details>`;
     const copyBtn = $('#owttCopy');
     if (copyBtn) copyBtn.addEventListener('click', () => { navigator.clipboard?.writeText(owtt); copyBtn.textContent = 'Copied ✓'; });
   });

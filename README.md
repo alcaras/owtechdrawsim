@@ -81,7 +81,12 @@ Click **📋 Plan & Optimize** to analyze a research plan instead of playing by 
   tech lands, and a warning if an on-plan bonus tends to get trashed.
 - **Optimize** searches orderings (hill-climb with **Common Random Numbers** — every
   candidate scored on the same seed set) and reports the fastest order plus an
-  `?o=` string to paste back into owtt.
+  `?o=` string to paste back into owtt. The recommendation is shown as a **projected
+  research order** (each tech at the turn it typically completes), so it always reads
+  as a feasible sequence rather than a raw priority rank. It also reports the
+  **headroom** — how much order can possibly matter — since completing a whole set is
+  mostly *science-bound* (you accumulate roughly the sum of tech costs regardless of
+  order), so order is usually a small (1–4 turn) lever under "take when convenient".
 - **Strict order** toggle — *off* (flexible, default) takes whatever wanted card
   appears, which is usually fastest; *on* chases your #1-priority tech next,
   redrawing past lower-priority cards, so techs land in your exact order (it still
