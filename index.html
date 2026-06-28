@@ -122,6 +122,13 @@
           <label class="opt">Runs <input type="number" id="planRuns" class="seed-input" value="160" min="20" max="1000" /></label>
           <span id="planNationNote" class="plan-nation-note"></span>
         </div>
+        <div class="plan-objectives">
+          <span class="obj-label">Optimize timing for:</span>
+          <label class="opt"><input type="checkbox" id="planObjLaw4" /> 4th law</label>
+          <label class="opt"><input type="checkbox" id="planObjLaw7" /> 7th law</label>
+          <label class="opt"><input type="checkbox" id="planObjUnit8" /> first 8-str unit</label>
+          <span class="obj-hint">— all off = fastest completion</span>
+        </div>
         <div class="plan-actions">
           <button id="planSimBtn" class="plan-go">▶ Simulate plan</button>
           <button id="planOptBtn" class="plan-go alt">✨ Optimize order</button>

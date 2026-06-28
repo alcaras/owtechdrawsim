@@ -12,6 +12,7 @@
 
 import { DrawEngine } from './engine.js';
 import { makeScienceModel } from './science.js';
+import { unitStrengthByTech } from './milestone-data.js';
 
 // ---------- parse an owtt plan (URL / query / index list / id list) ----------
 export function parseOwttPlan(input, TD, NL) {
@@ -88,6 +89,30 @@ export function expandPlan(targets, byId, startingSet) {
   for (const id of targets) place(id);
   return order;
 }
+
+// ---------- milestones (law slots reached, first strong unit) ----------
+const lawsOfTech = (byId, id) => {
+  const t = byId.get(id);
+  return (t && !t.isBonus && t.unlocks && t.unlocks.laws) ? t.unlocks.laws.length : 0;
+};
+// Given a run's acquisition turns + the nation's starting techs, the turn each
+// milestone is hit: 4th/7th law slot unlocked, first >=8-strength unit's tech.
+function milestoneTurns(acquiredTurn, byId, startingSet) {
+  let startLaws = 0;
+  for (const id of startingSet) startLaws += lawsOfTech(byId, id);
+  const acq = Object.keys(acquiredTurn).map((id) => ({ id, turn: acquiredTurn[id] })).sort((a, b) => a.turn - b.turn);
+  const lawTurn = (n) => {
+    let c = startLaws;
+    if (c >= n) return 0;
+    for (const { id, turn } of acq) { c += lawsOfTech(byId, id); if (c >= n) return turn; }
+    return null; // not reachable with this plan
+  };
+  let unit8 = null, unit8info = null;
+  for (const { id, turn } of acq) { const u = unitStrengthByTech[id]; if (u && u.str >= 8) { unit8 = turn; unit8info = u; break; } }
+  return { law4: lawTurn(4), law7: lawTurn(7), unit8, unit8info };
+}
+export const OBJECTIVE_KEYS = ['law4', 'law7', 'unit8'];
+function activeObjectives(config) { return OBJECTIVE_KEYS.filter((k) => config.objectives && config.objectives[k]); }
 
 // ---------- auto-player ----------
 function bestWanted(eng, rank) {
@@ -215,9 +240,18 @@ export function simulatePlan({ TD, ND, nation, targets, config, seeds }) {
   for (const id of order) acqMedian[id] = median(done.map((r) => r.acquiredTurn[id]).filter((x) => x != null));
   const bonusWanted = runs.length ? runs[0].bonusesWanted : 0;
   const kept = done.map((r) => r.bonusesGot);
+  // milestone timings (median turn reached + how often reachable)
+  const ms = done.map((r) => milestoneTurns(r.acquiredTurn, byId, startingSet));
+  const msStat = (key) => { const v = ms.map((m) => m[key]).filter((x) => x != null); return { median: median(v), reached: ms.length ? v.length / ms.length : 0 }; };
+  const unitInfo = (ms.find((m) => m.unit8info) || {}).unit8info || null;
+  const milestones = {
+    law4: msStat('law4'), law7: msStat('law7'),
+    unit8: { ...msStat('unit8'), unit: unitInfo },
+  };
   return {
     order,
     runs: runs.length,
+    milestones,
     bonusPolicy: config.bonusPolicy === 'all' ? 'all' : 'optional',
     successRate: done.length / runs.length,
     lostBonusRate: runs.filter((r) => r.lostBonus).length / runs.length,
@@ -236,12 +270,22 @@ export function simulatePlan({ TD, ND, nation, targets, config, seeds }) {
 // never return an order that is slower OR less reliable than the input.
 function scoreOrder(TD, ND, nation, targets, config, seeds, byId, startingSet) {
   const order = expandPlan(targets, byId, startingSet);
-  let sum = 0, done = 0, fails = 0;
+  const objs = activeObjectives(config);
+  let sum = 0, ok = 0, fails = 0;
   for (const s of seeds) {
     const r = runOnce(TD, ND, nation, order, config, s);
-    if (r.done) { sum += r.completionTurn; done++; } else fails++;
+    if (objs.length === 0) {
+      // default objective: full-plan completion of successful runs
+      if (r.done) { sum += r.completionTurn; ok++; } else fails++;
+    } else {
+      // milestone objective: sum of the selected milestone turns (fail if any unreached)
+      const m = milestoneTurns(r.acquiredTurn, byId, startingSet);
+      let runSum = 0, good = true;
+      for (const o of objs) { const t = m[o]; if (t == null) good = false; else runSum += t; }
+      if (good) { sum += runSum; ok++; } else fails++;
+    }
   }
-  return { comp: done ? sum / done : Infinity, fail: fails / seeds.length, order };
+  return { comp: ok ? sum / ok : Infinity, fail: fails / seeds.length, order };
 }
 // "a is a strict improvement over b": no worse reliability, and meaningfully faster.
 function beats(a, b) {

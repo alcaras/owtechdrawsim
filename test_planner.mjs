@@ -151,5 +151,19 @@ section('strict mode researches in exact priority order; flexible is no slower')
   console.log(`    flexible ${flex.completion.mean.toFixed(1)} vs strict ${strict.completion.mean.toFixed(1)} turns`);
 }
 
+section('milestone objectives: law timing + 8-str unit');
+{
+  const targets = ['TECH_LABOR_FORCE', 'TECH_ARISTOCRACY', 'TECH_RHETORIC', 'TECH_NAVIGATION', 'TECH_SOVEREIGNTY', 'TECH_CITIZENSHIP', 'TECH_COHORTS'];
+  const base = { scholar: false, oracleTurn: null, maxTurns: 400, bonusPolicy: 'optional' };
+  const sim = simulatePlan({ TD, ND, nation: 'NATION_ROME', targets, config: base, seeds });
+  ok(sim.milestones.law4.median != null && sim.milestones.law4.reached > 0.9, '4-law milestone reported & reachable');
+  ok(sim.milestones.unit8.median != null && sim.milestones.unit8.unit, `8-str unit reported (${sim.milestones.unit8.unit && sim.milestones.unit8.unit.unit})`);
+  const law4Of = (t) => simulatePlan({ TD, ND, nation: 'NATION_ROME', targets: t, config: base, seeds }).milestones.law4.median;
+  const optLaw = optimizePlan({ TD, ND, nation: 'NATION_ROME', targets, config: { ...base, objectives: { law4: true } }, seeds });
+  const optComp = optimizePlan({ TD, ND, nation: 'NATION_ROME', targets, config: { ...base, objectives: {} }, seeds });
+  ok(law4Of(optLaw.best.targets) <= law4Of(optComp.best.targets) + 1e-9, `law-optimized hits 4 laws no later than completion-optimized (${law4Of(optLaw.best.targets)} <= ${law4Of(optComp.best.targets)})`);
+  console.log(`    4-law turn: completion-opt T${law4Of(optComp.best.targets)} vs law-opt T${law4Of(optLaw.best.targets)}`);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

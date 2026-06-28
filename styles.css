@@ -262,6 +262,15 @@ body {
 .plan-config { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin: 12px 0; }
 .plan-nation-note { font-size: 13px; color: var(--ink-soft); font-weight: 600; }
 .bonus-sel { font: inherit; font-size: 13px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); margin-left: 4px; }
+.plan-objectives { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 0 0 12px; padding: 8px 10px; background: rgba(90,74,140,.07); border: 1px solid #d2cce2; border-radius: 8px; }
+.obj-label { font-weight: 700; font-size: 13px; color: #4a3f72; }
+.obj-hint { font-size: 12px; color: var(--ink-soft); font-style: italic; }
+.ms-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; margin: 4px 0 8px; }
+.ms-label { font-weight: 700; color: var(--ink-soft); }
+.ms-item { background: #eef0f7; border: 1px solid #cfd5e8; border-radius: 20px; padding: 2px 9px; }
+.ms-item b { color: #36447a; }
+.ms-item i { color: var(--ink-soft); font-style: normal; font-size: 11px; }
+.ms-warn { color: #9a3b2a; font-weight: 600; }
 .plan-actions { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
 .plan-go { font: inherit; font-weight: 750; cursor: pointer; border: none; border-radius: 10px; padding: 11px 18px; color: #fff; background: linear-gradient(180deg,#4f7d3e,#3c6330); }
 .plan-go.alt { background: linear-gradient(180deg,#5a4a8c,#3f3168); }
