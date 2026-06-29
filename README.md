@@ -79,6 +79,13 @@ Click **📋 Plan & Optimize** to analyze a research plan instead of playing by 
   science, ~free) or research the cheapest card to cycle without it. You get the
   median completion turn (p10–p90), success rate, **wasted science**, the turn each
   tech lands, and a warning if an on-plan bonus tends to get trashed.
+- **Science ROI** — for a beeline, asks *which science techs not on it pay for
+  themselves?* Each candidate science tech (Divination, Scholarship, Monasticism…) is
+  added and prioritized early; if your original beeline then finishes **no later** than
+  the baseline, its compounding +science income offset the detour. Reports per tech:
+  +science/turn, when it lands, extra cost, beeline completion, and the verdict.
+  (Cheap/early science like Divination usually pays off; deep/late science rarely does,
+  and pays off more on longer beelines that give it runway to compound.)
 - **Optimize** searches orderings (hill-climb with **Common Random Numbers** — every
   candidate scored on the same seed set) and reports the fastest order plus an
   `?o=` string to paste back into owtt. The recommendation is shown as a **projected

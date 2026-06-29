@@ -3,7 +3,7 @@
 // Scholar redraw, a buildable Oracle, and a turn-by-turn history.
 import { DrawEngine } from './engine.js';
 import { makeScienceModel, makeScienceCurve, scienceBreakdown } from './science.js';
-import { parseOwttPlan, encodeOwttOrder, simulatePlan, optimizePlan } from './planner.js';
+import { parseOwttPlan, encodeOwttOrder, simulatePlan, optimizePlan, scienceROI } from './planner.js';
 import { unitStrengthByTech } from './milestone-data.js';
 
 const TD = window.techData;
@@ -553,8 +553,31 @@ function runOptimize() {
   });
 }
 
+function runScienceROI() {
+  withCompute(() => {
+    const { targets, nation } = getPlanTargets();
+    const roi = scienceROI({ TD, ND, nation, targets, config: planConfig(), seeds: planSeeds() });
+    if (!roi.results.length) {
+      $('#planResults').innerHTML = `<h3>Science tech ROI</h3><div class="opt-note">Every science tech is already on your beeline (or a starting tech) — nothing to detour for.</div>`;
+      return;
+    }
+    const rows = roi.results.map((r) => {
+      const v = r.delta == null ? '—'
+        : r.delta <= -0.5 ? `<span class="roi-good">✓ pays for itself (−${(-r.delta).toFixed(1)})</span>`
+        : r.delta <= 0.5 ? `<span class="roi-ok">≈ free</span>`
+        : `<span class="roi-bad">✗ costs +${r.delta.toFixed(1)}</span>`;
+      return `<tr><td class="pt-name">${escapeHtml(techName(r.tech))}</td><td>+${r.weight}</td><td>T${r.lands ?? '—'}</td><td>${r.extraCost}</td><td>T${r.completion ?? '—'}</td><td>${v}</td></tr>`;
+    }).join('');
+    $('#planResults').innerHTML = `
+      <h3>Science tech ROI</h3>
+      <div class="opt-note">Each science tech <i>not</i> on your beeline, added and prioritized early. <b>“Pays for itself”</b> = your beeline still finishes no later than the baseline (<b>T${roi.baseCompletion}</b>) despite the detour — its +science income compounds enough to offset the extra cost. Cheap, early science (Divination) compounds longest; deep, late science rarely earns it back.</div>
+      <table class="pt-table roi-table"><thead><tr><th>Science tech</th><th>+sci/turn</th><th>lands</th><th>extra cost</th><th>beeline done</th><th>verdict</th></tr></thead><tbody>${rows}</tbody></table>`;
+  });
+}
+
 $('#planBtn').addEventListener('click', openPlan);
 $('#planInput').addEventListener('input', populateTechDropdown);
+$('#planRoiBtn').addEventListener('click', runScienceROI);
 $('#planFromGame').addEventListener('click', fillFromGame);
 $('#planClose').addEventListener('click', closePlan);
 $('#planModal').addEventListener('click', (e) => { if (e.target.id === 'planModal') closePlan(); });

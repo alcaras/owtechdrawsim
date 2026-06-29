@@ -12,6 +12,7 @@
 
 import { DrawEngine } from './engine.js';
 import { makeScienceModel } from './science.js';
+import { scienceTechs, scienceWeights } from './science-model.js';
 import { unitStrengthByTech } from './milestone-data.js';
 
 // ---------- parse an owtt plan (URL / query / index list / id list) ----------
@@ -342,6 +343,49 @@ export function optimizePlan({ TD, ND, nation, targets, config, seeds, maxIters 
     changed: JSON.stringify(bestTargets) !== JSON.stringify(targets),
     iters,
   };
+}
+
+// ---------- science-tech ROI ("which off-beeline science techs pay for themselves?") ----------
+// Completion = when ALL the original beeline targets are acquired (max acquisition turn),
+// measured even in plans that ADD a science tech. A science tech pays for itself if
+// adding it (prioritized early, with its prereqs) makes the beeline finish no later —
+// its compounding +science income offsets the detour cost.
+function beelineCompletion(runs, targets) {
+  const comps = [];
+  for (const r of runs) {
+    const ts = targets.map((id) => r.acquiredTurn[id]);
+    if (ts.every((x) => x != null)) comps.push(Math.max(...ts));
+  }
+  return { median: median(comps), reached: runs.length ? comps.length / runs.length : 0 };
+}
+
+export function scienceROI({ TD, ND, nation, targets, config, seeds }) {
+  const byId = buildIndex(TD);
+  const startingSet = new Set(ND.startingTechs[nation] || []);
+  const curve = config.curve || makeScienceModel(nation);
+  const cfg = { ...config, curve, objectives: {} }; // ROI ignores milestone objectives
+
+  const baseOrder = expandPlan(targets, byId, startingSet);
+  const baseClosure = new Set(baseOrder);
+  const baseRuns = seeds.map((s) => runOnce(TD, ND, nation, baseOrder, cfg, s));
+  const base = beelineCompletion(baseRuns, targets);
+
+  const candidates = scienceTechs.filter((s) => byId.has(s) && !baseClosure.has(s) && !startingSet.has(s));
+  const results = candidates.map((sTech) => {
+    const augOrder = expandPlan([sTech, ...targets], byId, startingSet); // prioritize the science tech
+    const runs = seeds.map((s) => runOnce(TD, ND, nation, augOrder, cfg, s));
+    const comp = beelineCompletion(runs, targets);
+    const lands = median(runs.map((r) => r.acquiredTurn[sTech]).filter((x) => x != null));
+    let extraCost = 0;
+    for (const id of augOrder) if (!baseClosure.has(id)) extraCost += byId.get(id)?.cost || 0;
+    return {
+      tech: sTech, weight: scienceWeights[sTech] || 0, lands,
+      completion: comp.median, delta: (comp.median != null && base.median != null) ? comp.median - base.median : null,
+      extraCost,
+    };
+  });
+  results.sort((a, b) => (a.delta ?? 1e9) - (b.delta ?? 1e9)); // best ROI first
+  return { baseCompletion: base.median, results };
 }
 
 export const _internal = { buildIndex, expandPlan, bestWanted, cheapestCycle };
