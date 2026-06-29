@@ -4,6 +4,7 @@
 import { DrawEngine } from './engine.js';
 import { makeScienceModel, makeScienceCurve, scienceBreakdown } from './science.js';
 import { parseOwttPlan, encodeOwttOrder, simulatePlan, optimizePlan } from './planner.js';
+import { unitStrengthByTech } from './milestone-data.js';
 
 const TD = window.techData;
 const ND = window.nationData;
@@ -453,18 +454,44 @@ function milestoneLine(s) {
   return parts.length ? `<div class="ms-line"><span class="ms-label">Milestones:</span>${parts.join('')}</div>` : '';
 }
 
+// Markdown copy of the priority queue: header (nation, owtt link, what we optimized
+// for) + numbered list, with {law N} on law techs (running count incl. starting techs)
+// and {N str — Unit} on techs that unlock a strong unit.
+function priorityMarkdown(order, nation, objectives) {
+  const objList = Object.keys(OBJ_NAMES).filter((k) => objectives && objectives[k]);
+  const optFor = objList.length ? objList.map((k) => OBJ_NAMES[k]).join(' + ') : 'fastest completion';
+  const url = 'https://alcaras.github.io/owtt/?' + encodeOwttOrder(order, TD, nation, NATIONS);
+  let laws = (ND.startingTechs[nation] || []).reduce((n, id) => n + lawsOf(id).length, 0);
+  const lines = order.map((id, i) => {
+    const anno = [];
+    const lc = isBonusId(id) ? 0 : lawsOf(id).length;
+    if (lc > 0) { laws += lc; anno.push(`law ${laws}`); }
+    const u = unitStrengthByTech[id];
+    if (u && u.str >= 8) anno.push(`${u.str} str — ${u.unit}`);
+    return `${i + 1}. ${isBonusId(id) ? '★ ' : ''}${techName(id)}${anno.length ? ` {${anno.join(', ')}}` : ''}`;
+  });
+  return `# Priority Queue — ${nationName(nation)} (optimized for: ${optFor})\nowtt: ${url}\n\n${lines.join('\n')}\n`;
+}
+function wireCopyMarkdown(md) {
+  window.__pqMarkdown = md; // exposed for debugging / tests
+  const b = $('#pqCopy');
+  if (b) b.addEventListener('click', () => { navigator.clipboard?.writeText(md); b.textContent = '✓ Copied markdown'; });
+}
+
 function runSimulate() {
   withCompute(() => {
     const { targets, nation } = getPlanTargets();
-    const s = simulatePlan({ TD, ND, nation, targets, config: planConfig(), seeds: planSeeds() });
+    const config = planConfig();
+    const s = simulatePlan({ TD, ND, nation, targets, config, seeds: planSeeds() });
     $('#planResults').innerHTML = `
       <h3>Simulation — your order</h3>
-      <div class="seq-label">Priority queue — the order the sim prefers (grab the highest-ranked available card; prereqs auto-inserted):</div>
+      <div class="seq-label seq-label-row"><span>Priority queue — the order the sim prefers (grab the highest-ranked available card; prereqs auto-inserted):</span><button id="pqCopy" class="copy-btn">⧉ Copy as markdown</button></div>
       ${pillRow(s.order)}
       <div class="seq-label">Likely research order — the turn each tech typically completes:</div>
       ${pillRow(s.order, s.acqMedian)}
       ${statsBlock(s)}
       ${milestoneLine(s)}`;
+    wireCopyMarkdown(priorityMarkdown(s.order, nation, config.objectives));
   });
 }
 
@@ -491,7 +518,7 @@ function runOptimize() {
     $('#planResults').innerHTML = `
       <h3>${forMilestones ? `Optimized for ${objList.map((k) => OBJ_NAMES[k]).join(' + ')}` : 'Optimized order'} ${badge}</h3>
       ${note}
-      <div class="seq-label">Optimized priority queue — what the sim prefers:</div>
+      <div class="seq-label seq-label-row"><span>Optimized priority queue — what the sim prefers:</span><button id="pqCopy" class="copy-btn">⧉ Copy as markdown</button></div>
       ${pillRow(opt.best.order)}
       <div class="seq-label">Likely research order — the turn each tech typically completes:</div>
       ${pillRow(opt.best.order, after.acqMedian)}
@@ -504,6 +531,7 @@ function runOptimize() {
         ${statsBlock(before)}</details>`;
     const copyBtn = $('#owttCopy');
     if (copyBtn) copyBtn.addEventListener('click', () => { navigator.clipboard?.writeText(owtt); copyBtn.textContent = 'Copied ✓'; });
+    wireCopyMarkdown(priorityMarkdown(opt.best.order, nation, config.objectives));
   });
 }
 

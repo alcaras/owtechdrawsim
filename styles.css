@@ -283,6 +283,8 @@ body {
 .saved { font-size: 13px; font-weight: 800; color: #3c6330; background: #dff0d6; border-radius: 20px; padding: 2px 10px; }
 .saved.flat { color: var(--ink-soft); background: rgba(0,0,0,.06); }
 .seq-label { font-size: 12px; color: var(--ink-soft); margin-bottom: 6px; }
+.seq-label-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.seq-label-row > span { flex: 1; }
 .opt-note { font-size: 12.5px; line-height: 1.5; color: var(--ink-soft); background: rgba(0,0,0,.04); border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; margin: 2px 0 12px; }
 .opt-note b { color: var(--ink); }
 .seq { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
