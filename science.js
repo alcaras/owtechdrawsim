@@ -38,34 +38,10 @@ export function makeScienceModel(nationId) {
   return (turn, engine) => Math.max(1, Math.round(rateAt(pts, turn) + techBonus(turn, engine)));
 }
 
-// Build/specialist ramp delay (turns) before a science tech's income comes online.
-// Applied ONLY to mechanic-estimated weights — the data-derived weights (Divination,
-// Monasticism) already include realized build/specialist/city effects empirically, so
-// adding a delay there would double-count the lag.
-const SCIENCE_DELAY = {
-  TECH_SCHOLARSHIP: 12, // libraries + Philosopher/Scribe specialists
-  TECH_HYDRAULICS: 8,   // watermill
-  TECH_WINDLASS: 8,     // windmill
-  TECH_METAPHYSICS: 5,  // Archive project
-  TECH_ARCHITECTURE: 2, // Philosophy law (near-instant)
-};
-function delayOf(t) { return scienceProvenance[t] === 'mechanic' ? (SCIENCE_DELAY[t] ?? 6) : 0; }
-export function scienceBuildDelay(t) { return delayOf(t); }
-
-// One science tech's current contribution to science/turn. A mechanic tech's income
-// only switches on `delay` turns after it's researched (build time); both the player's
-// possession and the average baseline are shifted by the delay to stay consistent.
+// One science tech's contribution to science/turn, centered on average possession.
 function techContribution(t, turn, engine) {
-  const acquired = engine && engine.state && engine.state.get(t) === 'acquired';
-  const delay = delayOf(t);
-  let has = acquired ? 1 : 0;
-  let center = clampInterp(avgHas[t], turn);
-  if (acquired && delay > 0 && engine.acqTurnMap && engine.acqTurnMap.get(t) != null) {
-    const at = engine.acqTurnMap.get(t);
-    has = Math.max(0, Math.min(1, (turn - at) / delay)); // linear ramp as you build it up
-    center = clampInterp(avgHas[t], turn - delay / 2);   // shift baseline by the ramp midpoint
-  }
-  return (scienceWeights[t] || 0) * (has - center);
+  const has = engine && engine.state && engine.state.get(t) === 'acquired' ? 1 : 0;
+  return (scienceWeights[t] || 0) * (has - clampInterp(avgHas[t], turn));
 }
 
 function techBonus(turn, engine) {
@@ -83,9 +59,7 @@ export function scienceBreakdown(nationId, turn, engine) {
   for (const t of scienceTechs) {
     const has = engine && engine.state && engine.state.get(t) === 'acquired';
     if (!has) continue;
-    const at = engine.acqTurnMap && engine.acqTurnMap.get(t);
-    const building = delayOf(t) > 0 && at != null && turn < at + delayOf(t);
-    contribs.push({ id: t, amount: techContribution(t, turn, engine), src: scienceProvenance[t], building });
+    contribs.push({ id: t, amount: techContribution(t, turn, engine), src: scienceProvenance[t] });
   }
   const total = Math.max(1, Math.round(rateAt(pts, turn) + techBonus(turn, engine)));
   return { base: Math.round(base), total, bonus: total - Math.round(base), contribs };

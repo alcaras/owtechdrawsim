@@ -12,7 +12,6 @@
 
 import { DrawEngine } from './engine.js';
 import { makeScienceModel } from './science.js';
-import { scienceTechs, scienceWeights } from './science-model.js';
 import { unitStrengthByTech } from './milestone-data.js';
 
 // ---------- parse an owtt plan (URL / query / index list / id list) ----------
@@ -343,55 +342,6 @@ export function optimizePlan({ TD, ND, nation, targets, config, seeds, maxIters 
     changed: JSON.stringify(bestTargets) !== JSON.stringify(targets),
     iters,
   };
-}
-
-// ---------- science-tech ROI ("which off-beeline science techs speed up the goal?") ----------
-// The "goal" value of a run = whatever's being optimized for the ORIGINAL targets:
-// completion (max acquisition turn) by default, else the selected milestone/specific-tech
-// turns. Measured even in plans that ADD a science tech, so a tech "pays for itself" when
-// adding it (prioritized early, with prereqs) makes the goal arrive no later — its
-// compounding +science income offsets the detour cost.
-function objectiveValue(run, targets, config, byId, startingSet) {
-  const objs = activeObjectives(config);
-  const techObj = (config.objectives && config.objectives.tech) || null;
-  if (objs.length === 0 && !techObj) {
-    const ts = targets.map((id) => run.acquiredTurn[id]);
-    return ts.every((x) => x != null) ? Math.max(...ts) : null;
-  }
-  const m = milestoneTurns(run.acquiredTurn, byId, startingSet);
-  let sum = 0;
-  for (const o of objs) { const t = m[o]; if (t == null) return null; sum += t; }
-  if (techObj) { const t = run.acquiredTurn[techObj]; if (t == null) return null; sum += t; }
-  return sum;
-}
-
-export function scienceROI({ TD, ND, nation, targets, config, seeds }) {
-  const byId = buildIndex(TD);
-  const startingSet = new Set(ND.startingTechs[nation] || []);
-  const curve = config.curve || makeScienceModel(nation);
-  const simCfg = { ...config, curve, objectives: {} }; // auto-player follows the order, not objectives
-  const objVal = (run) => objectiveValue(run, targets, config, byId, startingSet);
-
-  const baseOrder = expandPlan(targets, byId, startingSet);
-  const baseClosure = new Set(baseOrder);
-  const baseRuns = seeds.map((s) => runOnce(TD, ND, nation, baseOrder, simCfg, s));
-  const baseObj = median(baseRuns.map(objVal).filter((x) => x != null));
-
-  const candidates = scienceTechs.filter((s) => byId.has(s) && !baseClosure.has(s) && !startingSet.has(s));
-  const results = candidates.map((sTech) => {
-    const augOrder = expandPlan([sTech, ...targets], byId, startingSet); // prioritize the science tech
-    const runs = seeds.map((s) => runOnce(TD, ND, nation, augOrder, simCfg, s));
-    const obj = median(runs.map(objVal).filter((x) => x != null));
-    const lands = median(runs.map((r) => r.acquiredTurn[sTech]).filter((x) => x != null));
-    let extraCost = 0;
-    for (const id of augOrder) if (!baseClosure.has(id)) extraCost += byId.get(id)?.cost || 0;
-    return {
-      tech: sTech, weight: scienceWeights[sTech] || 0, lands, objective: obj,
-      delta: (obj != null && baseObj != null) ? obj - baseObj : null, extraCost,
-    };
-  });
-  results.sort((a, b) => (a.delta ?? 1e9) - (b.delta ?? 1e9)); // best ROI first
-  return { baseObjective: baseObj, results };
 }
 
 export const _internal = { buildIndex, expandPlan, bestWanted, cheapestCycle };

@@ -2,8 +2,8 @@
 // game-like screen: a hand of cards you pick from, a Next-turn science tick, the
 // Scholar redraw, a buildable Oracle, and a turn-by-turn history.
 import { DrawEngine } from './engine.js';
-import { makeScienceModel, makeScienceCurve, scienceBreakdown, scienceBuildDelay } from './science.js';
-import { parseOwttPlan, encodeOwttOrder, simulatePlan, optimizePlan, scienceROI } from './planner.js';
+import { makeScienceModel, makeScienceCurve, scienceBreakdown } from './science.js';
+import { parseOwttPlan, encodeOwttOrder, simulatePlan, optimizePlan } from './planner.js';
 import { unitStrengthByTech } from './milestone-data.js';
 
 const TD = window.techData;
@@ -475,7 +475,7 @@ function milestoneLine(s, techId) {
 // Markdown copy of the priority queue: header (nation, owtt link, what we optimized
 // for) + numbered list, with {law N} on law techs (running count incl. starting techs)
 // and {N str — Unit} on techs that unlock a strong unit.
-function priorityMarkdown(order, nation, objectives) {
+function priorityMarkdown(order, nation, objectives, acqMedian) {
   const objList = Object.keys(OBJ_NAMES).filter((k) => objectives && objectives[k]);
   const optFor = objList.length ? objList.map((k) => OBJ_NAMES[k]).join(' + ') : 'fastest completion';
   const url = 'https://alcaras.github.io/owtt/?' + encodeOwttOrder(order, TD, nation, NATIONS);
@@ -486,7 +486,8 @@ function priorityMarkdown(order, nation, objectives) {
     if (lc > 0) { laws += lc; anno.push(`law ${laws}`); }
     const u = unitStrengthByTech[id];
     if (u && u.str >= 8) anno.push(`${u.str} str — ${u.unit}`);
-    return `${i + 1}. ${isBonusId(id) ? '★ ' : ''}${techName(id)}${anno.length ? ` {${anno.join(', ')}}` : ''}`;
+    const eta = acqMedian && acqMedian[id] != null ? ` (~T${acqMedian[id]})` : '';
+    return `${i + 1}. ${isBonusId(id) ? '★ ' : ''}${techName(id)}${eta}${anno.length ? ` {${anno.join(', ')}}` : ''}`;
   });
   return `# Priority Queue — ${nationName(nation)} (optimized for: ${optFor})\nowtt: ${url}\n\n${lines.join('\n')}\n`;
 }
@@ -509,7 +510,7 @@ function runSimulate() {
       ${pillRow(s.order, s.acqMedian)}
       ${statsBlock(s)}
       ${milestoneLine(s, config.objectives && config.objectives.tech)}`;
-    wireCopyMarkdown(priorityMarkdown(s.order, nation, config.objectives));
+    wireCopyMarkdown(priorityMarkdown(s.order, nation, config.objectives, s.acqMedian));
   });
 }
 
@@ -549,37 +550,12 @@ function runOptimize() {
         ${statsBlock(before)}</details>`;
     const copyBtn = $('#owttCopy');
     if (copyBtn) copyBtn.addEventListener('click', () => { navigator.clipboard?.writeText(owtt); copyBtn.textContent = 'Copied ✓'; });
-    wireCopyMarkdown(priorityMarkdown(opt.best.order, nation, config.objectives));
-  });
-}
-
-function runScienceROI() {
-  withCompute(() => {
-    const { targets, nation } = getPlanTargets();
-    const roi = scienceROI({ TD, ND, nation, targets, config: planConfig(), seeds: planSeeds() });
-    if (!roi.results.length) {
-      $('#planResults').innerHTML = `<h3>Science tech ROI</h3><div class="opt-note">Every science tech is already on your beeline (or a starting tech) — nothing to detour for.</div>`;
-      return;
-    }
-    const rows = roi.results.map((r) => {
-      const v = r.delta == null ? '—'
-        : r.delta <= -0.5 ? `<span class="roi-good">✓ pays for itself (−${(-r.delta).toFixed(1)})</span>`
-        : r.delta <= 0.5 ? `<span class="roi-ok">≈ free</span>`
-        : `<span class="roi-bad">✗ costs +${r.delta.toFixed(1)}</span>`;
-      const d = scienceBuildDelay(r.tech);
-      const lands = r.lands != null ? `T${r.lands}${d ? ` <i>(online ~T${r.lands + d})</i>` : ''}` : '—';
-      return `<tr><td class="pt-name">${escapeHtml(techName(r.tech))}</td><td>+${r.weight}</td><td>${lands}</td><td>${r.extraCost}</td><td>T${r.objective ?? '—'}</td><td>${v}</td></tr>`;
-    }).join('');
-    $('#planResults').innerHTML = `
-      <h3>Science tech ROI</h3>
-      <div class="opt-note">Each science tech <i>not</i> on your beeline, added and prioritized early. <b>“Pays for itself”</b> = your goal still arrives no later than the baseline (<b>T${roi.baseObjective}</b>). Divination/Monasticism use <b>real game data</b> (build time, specialists & city count already averaged in); the rest are mechanic estimates whose income <b>ramps up over a build delay</b> (shown as “online ~T…”), so they pay off only if there's runway left to compound.</div>
-      <table class="pt-table roi-table"><thead><tr><th>Science tech</th><th>+sci/turn</th><th>lands</th><th>extra cost</th><th>goal @</th><th>verdict</th></tr></thead><tbody>${rows}</tbody></table>`;
+    wireCopyMarkdown(priorityMarkdown(opt.best.order, nation, config.objectives, after.acqMedian));
   });
 }
 
 $('#planBtn').addEventListener('click', openPlan);
 $('#planInput').addEventListener('input', populateTechDropdown);
-$('#planRoiBtn').addEventListener('click', runScienceROI);
 $('#planFromGame').addEventListener('click', fillFromGame);
 $('#planClose').addEventListener('click', closePlan);
 $('#planModal').addEventListener('click', (e) => { if (e.target.id === 'planModal') closePlan(); });

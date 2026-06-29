@@ -1,6 +1,6 @@
 // node test_planner.mjs
 import { readFileSync } from 'node:fs';
-import { parseOwttPlan, expandPlan, simulatePlan, optimizePlan, autoPlay, scienceROI, _internal } from './planner.js';
+import { parseOwttPlan, expandPlan, simulatePlan, optimizePlan, autoPlay, _internal } from './planner.js';
 import { makeScienceCurve } from './science.js';
 import { DrawEngine } from './engine.js';
 
@@ -177,16 +177,6 @@ section('specific-tech objective pulls that tech earlier');
   console.log(`    Machinery: completion-opt T${tC} vs tech-opt T${tT}`);
 }
 
-section('science ROI: cheap early science pays off more than deep late science');
-{
-  const targets = ['TECH_STONECUTTING','TECH_POLIS','TECH_FORESTRY','TECH_LAND_CONSOLIDATION','TECH_COMPOSITE_BOW','TECH_MANOR','TECH_BODKIN_ARROW'];
-  const roi = scienceROI({ TD, ND, nation: 'NATION_ASSYRIA', targets, config: { scholar:false, oracleTurn:null, maxTurns:400, bonusPolicy:'optional' }, seeds });
-  ok(roi.results.length > 0, 'returns candidate off-beeline science techs');
-  const div = roi.results.find(r => r.tech==='TECH_DIVINATION');
-  const wind = roi.results.find(r => r.tech==='TECH_WINDLASS');
-  ok(div && wind && div.delta <= wind.delta, `Divination ROI no worse than Windlass (${div&&div.delta} <= ${wind&&wind.delta})`);
-  console.log(`    baseline T${roi.baseCompletion} | Divination delta ${div.delta} vs Windlass delta ${wind.delta}`);
-}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

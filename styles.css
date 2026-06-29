@@ -276,11 +276,6 @@ body {
 .plan-actions { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
 .plan-go { font: inherit; font-weight: 750; cursor: pointer; border: none; border-radius: 10px; padding: 11px 18px; color: #fff; background: linear-gradient(180deg,#4f7d3e,#3c6330); }
 .plan-go.alt { background: linear-gradient(180deg,#5a4a8c,#3f3168); }
-.plan-go.roi { background: linear-gradient(180deg,#b8862f,#8a6320); }
-.roi-good { color: #2f6b34; font-weight: 700; }
-.roi-ok { color: var(--ink-soft); font-weight: 600; }
-.roi-bad { color: #9a3b2a; font-weight: 600; }
-.roi-table td { font-variant-numeric: tabular-nums; }
 .plan-go:hover:not(:disabled) { filter: brightness(1.1); }
 .plan-go:disabled { opacity: .5; cursor: default; }
 .plan-status { color: var(--ink-soft); font-style: italic; }
