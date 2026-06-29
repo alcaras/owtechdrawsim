@@ -87,9 +87,10 @@ Click **📋 Plan & Optimize** to analyze a research plan instead of playing by 
   **headroom** — how much order can possibly matter — since completing a whole set is
   mostly *science-bound* (you accumulate roughly the sum of tech costs regardless of
   order), so order is usually a small (1–4 turn) lever under "take when convenient".
-- **Milestone objectives** — independent checkboxes to optimize *timing* instead of
-  full completion: reach your **4th law**, **7th law**, or **first 8-strength unit** as
-  early as possible (check any combination; all off = fastest completion). The result
+- **Milestone objectives** — independent controls to optimize *timing* instead of
+  full completion: reach your **4th law**, **7th law**, **first 8-strength unit**, or a
+  **specific tech** (a dropdown of the techs in your plan, e.g. Machinery) as early as
+  possible (combine any; all off = fastest completion). The result
   always reports milestone turns, and optimizing one can push full completion later —
   a deliberate tradeoff you control. Laws come from each tech's `unlocks.laws`; unit
   strengths from `milestone-data.js` (generated from `unit.xml`, iStrength/10).

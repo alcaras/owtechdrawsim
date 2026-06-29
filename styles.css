@@ -269,6 +269,8 @@ body {
 .ms-label { font-weight: 700; color: var(--ink-soft); }
 .ms-item { background: #eef0f7; border: 1px solid #cfd5e8; border-radius: 20px; padding: 2px 9px; }
 .ms-item b { color: #36447a; }
+.ms-item.ms-tech { background: #e7def5; border-color: #c5b6e6; }
+.ms-item.ms-tech b { color: #5a3f8c; }
 .ms-item i { color: var(--ink-soft); font-style: normal; font-size: 11px; }
 .ms-warn { color: #9a3b2a; font-weight: 600; }
 .plan-actions { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }

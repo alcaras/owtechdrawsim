@@ -350,7 +350,7 @@ function planConfig() {
     scholar: $('#planScholar').checked,
     strict: $('#planStrict').checked,
     bonusPolicy: $('#planBonus').value,
-    objectives: { law4: $('#planObjLaw4').checked, law7: $('#planObjLaw7').checked, unit8: $('#planObjUnit8').checked },
+    objectives: { law4: $('#planObjLaw4').checked, law7: $('#planObjLaw7').checked, unit8: $('#planObjUnit8').checked, tech: $('#planObjTech').value || null },
     oracleTurn: Number.isFinite(oracle) && oracle > 0 ? oracle : null,
     maxTurns: 400,
   };
@@ -369,6 +369,7 @@ function fillFromGame() {
   if (!ids.length) return;
   $('#planInput').value = ids.join(', ');
   $('#planNationNote').textContent = `Nation: ${nationName(engine.nation)} (current) · ${ids.length} techs from your game`;
+  populateTechDropdown();
 }
 
 function openPlan() {
@@ -382,6 +383,7 @@ function openPlan() {
   $('#planFromGame').style.display = hasPath ? '' : 'none';
   // auto-fill with your played path when the box is empty
   if (hasPath && !$('#planInput').value.trim()) fillFromGame();
+  populateTechDropdown();
   $('#planModal').hidden = false;
   $('#planInput').focus();
 }
@@ -441,17 +443,33 @@ function statsBlock(s) {
 }
 
 const OBJ_NAMES = { law4: '4th law', law7: '7th law', unit8: 'first 8-str unit' };
-// A compact line of milestone timings (median turn reached).
-function milestoneLine(s) {
-  const m = s.milestones; if (!m) return '';
-  const item = (label, st) => (st && st.median != null)
+// Human labels for whatever objectives are active (incl. a specific tech).
+function objectiveLabels(objectives) {
+  if (!objectives) return [];
+  const list = Object.keys(OBJ_NAMES).filter((k) => objectives[k]).map((k) => OBJ_NAMES[k]);
+  if (objectives.tech) list.push(techName(objectives.tech));
+  return list;
+}
+// Populate the "specific tech" dropdown from the techs in the pasted plan.
+function populateTechDropdown() {
+  const parsed = parseOwttPlan($('#planInput').value, TD, NATIONS);
+  const sel = $('#planObjTech'); if (!sel) return;
+  const cur = sel.value;
+  const opts = ['<option value="">— none —</option>'];
+  for (const id of parsed.order) if (!isBonusId(id)) opts.push(`<option value="${id}">${escapeHtml(techName(id))}</option>`);
+  sel.innerHTML = opts.join('');
+  if ([...sel.options].some((o) => o.value === cur)) sel.value = cur;
+}
+// A compact line of milestone timings (median turn reached) + a chosen tech's turn.
+function milestoneLine(s, techId) {
+  const m = s.milestones;
+  const item = (label, st) => (st && st.median != null && st.reached >= 0.25)
     ? `<span class="ms-item">${label} <b>T${st.median}</b>${st.reached < 0.99 ? ` <i>${Math.round(st.reached * 100)}%</i>` : ''}</span>` : '';
-  const parts = [
-    item('4 laws', m.law4),
-    item('7 laws', m.law7),
-    item(`8-str unit${m.unit8 && m.unit8.unit ? ` (${escapeHtml(m.unit8.unit.unit)})` : ''}`, m.unit8),
-  ].filter(Boolean);
-  return parts.length ? `<div class="ms-line"><span class="ms-label">Milestones:</span>${parts.join('')}</div>` : '';
+  const parts = [];
+  if (techId && s.acqMedian && s.acqMedian[techId] != null) parts.push(`<span class="ms-item ms-tech">${escapeHtml(techName(techId))} <b>T${s.acqMedian[techId]}</b></span>`);
+  if (m) parts.push(item('4 laws', m.law4), item('7 laws', m.law7), item(`8-str unit${m.unit8 && m.unit8.unit ? ` (${escapeHtml(m.unit8.unit.unit)})` : ''}`, m.unit8));
+  const shown = parts.filter(Boolean);
+  return shown.length ? `<div class="ms-line"><span class="ms-label">Milestones:</span>${shown.join('')}</div>` : '';
 }
 
 // Markdown copy of the priority queue: header (nation, owtt link, what we optimized
@@ -490,7 +508,7 @@ function runSimulate() {
       <div class="seq-label">Likely research order — the turn each tech typically completes:</div>
       ${pillRow(s.order, s.acqMedian)}
       ${statsBlock(s)}
-      ${milestoneLine(s)}`;
+      ${milestoneLine(s, config.objectives && config.objectives.tech)}`;
     wireCopyMarkdown(priorityMarkdown(s.order, nation, config.objectives));
   });
 }
@@ -503,27 +521,27 @@ function runOptimize() {
     const opt = optimizePlan({ TD, ND, nation, targets, config, seeds, maxIters: 250 });
     const before = simulatePlan({ TD, ND, nation, targets: opt.baseline.targets, config, seeds });
     const after = simulatePlan({ TD, ND, nation, targets: opt.best.targets, config, seeds });
-    const objList = Object.keys(OBJ_NAMES).filter((k) => config.objectives && config.objectives[k]);
-    const forMilestones = objList.length > 0;
+    const labels = objectiveLabels(config.objectives);
+    const forMilestones = labels.length > 0;
     const saved = opt.improvedTurns ?? 0; // in the optimizer's objective units
     const headroom = opt.headroom ?? 0;
     const badge = (opt.changed && saved > 0.1)
       ? `<span class="saved">− ${saved.toFixed(1)} turns ${forMilestones ? 'sooner' : 'faster'}</span>`
       : `<span class="saved flat">✓ your order is already optimal</span>`;
-    const unreachable = objList.filter((k) => ((after.milestones && after.milestones[k] && after.milestones[k].reached) || 0) < 0.5);
+    const unreachable = Object.keys(OBJ_NAMES).filter((k) => config.objectives && config.objectives[k] && ((after.milestones && after.milestones[k] && after.milestones[k].reached) || 0) < 0.5).map((k) => OBJ_NAMES[k]);
     const note = forMilestones
-      ? `<div class="opt-note">Optimized to reach <b>${objList.map((k) => OBJ_NAMES[k]).join(' + ')}</b> as early as possible — this can push full completion later (see Milestones below).${unreachable.length ? ` <span class="ms-warn">${unreachable.map((k) => OBJ_NAMES[k]).join(', ')} not reachable with this plan.</span>` : ''}</div>`
+      ? `<div class="opt-note">Optimized to reach <b>${labels.join(' + ')}</b> as early as possible — this can push full completion later (see Milestones below).${unreachable.length ? ` <span class="ms-warn">${unreachable.join(', ')} not reachable with this plan.</span>` : ''}</div>`
       : `<div class="opt-note">Across all orderings, completion only swings <b>~${headroom.toFixed(1)} turns</b> — finishing a set is mostly <i>science-bound</i> (you accumulate roughly the sum of tech costs regardless of order). For bigger ordering effects, use <b>Strict order</b>, optimize a <b>milestone</b> above, or include early science techs whose income compounds.</div>`;
     const owtt = encodeOwttOrder(opt.best.order, TD, nation, NATIONS);
     $('#planResults').innerHTML = `
-      <h3>${forMilestones ? `Optimized for ${objList.map((k) => OBJ_NAMES[k]).join(' + ')}` : 'Optimized order'} ${badge}</h3>
+      <h3>${forMilestones ? `Optimized for ${labels.join(' + ')}` : 'Optimized order'} ${badge}</h3>
       ${note}
       <div class="seq-label seq-label-row"><span>Optimized priority queue — what the sim prefers:</span><button id="pqCopy" class="copy-btn">⧉ Copy as markdown</button></div>
       ${pillRow(opt.best.order)}
       <div class="seq-label">Likely research order — the turn each tech typically completes:</div>
       ${pillRow(opt.best.order, after.acqMedian)}
       ${statsBlock(after)}
-      ${milestoneLine(after)}
+      ${milestoneLine(after, config.objectives && config.objectives.tech)}
       <div class="owtt-out"><span>Optimized priority for owtt:</span><code id="owttCode">${escapeHtml(owtt)}</code><button id="owttCopy" class="copy-btn">Copy</button></div>
       <details class="cmp"><summary>vs. your original order (${before.completion.mean?.toFixed(1)} turns mean)</summary>
         <div class="seq-label">Priority queue:</div>${pillRow(before.order)}
@@ -536,6 +554,7 @@ function runOptimize() {
 }
 
 $('#planBtn').addEventListener('click', openPlan);
+$('#planInput').addEventListener('input', populateTechDropdown);
 $('#planFromGame').addEventListener('click', fillFromGame);
 $('#planClose').addEventListener('click', closePlan);
 $('#planModal').addEventListener('click', (e) => { if (e.target.id === 'planModal') closePlan(); });

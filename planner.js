@@ -271,17 +271,20 @@ export function simulatePlan({ TD, ND, nation, targets, config, seeds }) {
 function scoreOrder(TD, ND, nation, targets, config, seeds, byId, startingSet) {
   const order = expandPlan(targets, byId, startingSet);
   const objs = activeObjectives(config);
+  const techObj = (config.objectives && config.objectives.tech) || null; // a specific tech id
+  const hasMilestone = objs.length > 0 || techObj;
   let sum = 0, ok = 0, fails = 0;
   for (const s of seeds) {
     const r = runOnce(TD, ND, nation, order, config, s);
-    if (objs.length === 0) {
+    if (!hasMilestone) {
       // default objective: full-plan completion of successful runs
       if (r.done) { sum += r.completionTurn; ok++; } else fails++;
     } else {
-      // milestone objective: sum of the selected milestone turns (fail if any unreached)
+      // milestone objective: sum of the selected milestone/tech turns (fail if any unreached)
       const m = milestoneTurns(r.acquiredTurn, byId, startingSet);
       let runSum = 0, good = true;
       for (const o of objs) { const t = m[o]; if (t == null) good = false; else runSum += t; }
+      if (techObj) { const t = r.acquiredTurn[techObj]; if (t == null) good = false; else runSum += t; }
       if (good) { sum += runSum; ok++; } else fails++;
     }
   }

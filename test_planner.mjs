@@ -165,5 +165,17 @@ section('milestone objectives: law timing + 8-str unit');
   console.log(`    4-law turn: completion-opt T${law4Of(optComp.best.targets)} vs law-opt T${law4Of(optLaw.best.targets)}`);
 }
 
+section('specific-tech objective pulls that tech earlier');
+{
+  const targets = ['TECH_LABOR_FORCE', 'TECH_PHALANX', 'TECH_STEEL', 'TECH_NAVIGATION', 'TECH_COINAGE', 'TECH_MACHINERY', 'TECH_DRAMA'];
+  const base = { scholar: false, oracleTurn: null, maxTurns: 400, bonusPolicy: 'optional' };
+  const turnOf = (t, tech) => simulatePlan({ TD, ND, nation: 'NATION_ROME', targets: t, config: base, seeds }).acqMedian[tech];
+  const optTech = optimizePlan({ TD, ND, nation: 'NATION_ROME', targets, config: { ...base, objectives: { tech: 'TECH_MACHINERY' } }, seeds });
+  const optComp = optimizePlan({ TD, ND, nation: 'NATION_ROME', targets, config: { ...base, objectives: {} }, seeds });
+  const tT = turnOf(optTech.best.targets, 'TECH_MACHINERY'), tC = turnOf(optComp.best.targets, 'TECH_MACHINERY');
+  ok(tT <= tC + 1e-9, `tech-optimized gets Machinery no later than completion-optimized (${tT} <= ${tC})`);
+  console.log(`    Machinery: completion-opt T${tC} vs tech-opt T${tT}`);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
