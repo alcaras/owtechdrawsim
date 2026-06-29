@@ -2,7 +2,7 @@
 // game-like screen: a hand of cards you pick from, a Next-turn science tick, the
 // Scholar redraw, a buildable Oracle, and a turn-by-turn history.
 import { DrawEngine } from './engine.js';
-import { makeScienceModel, makeScienceCurve, scienceBreakdown } from './science.js';
+import { makeScienceModel, makeScienceCurve, scienceBreakdown, scienceBuildDelay } from './science.js';
 import { parseOwttPlan, encodeOwttOrder, simulatePlan, optimizePlan, scienceROI } from './planner.js';
 import { unitStrengthByTech } from './milestone-data.js';
 
@@ -566,12 +566,14 @@ function runScienceROI() {
         : r.delta <= -0.5 ? `<span class="roi-good">✓ pays for itself (−${(-r.delta).toFixed(1)})</span>`
         : r.delta <= 0.5 ? `<span class="roi-ok">≈ free</span>`
         : `<span class="roi-bad">✗ costs +${r.delta.toFixed(1)}</span>`;
-      return `<tr><td class="pt-name">${escapeHtml(techName(r.tech))}</td><td>+${r.weight}</td><td>T${r.lands ?? '—'}</td><td>${r.extraCost}</td><td>T${r.completion ?? '—'}</td><td>${v}</td></tr>`;
+      const d = scienceBuildDelay(r.tech);
+      const lands = r.lands != null ? `T${r.lands}${d ? ` <i>(online ~T${r.lands + d})</i>` : ''}` : '—';
+      return `<tr><td class="pt-name">${escapeHtml(techName(r.tech))}</td><td>+${r.weight}</td><td>${lands}</td><td>${r.extraCost}</td><td>T${r.objective ?? '—'}</td><td>${v}</td></tr>`;
     }).join('');
     $('#planResults').innerHTML = `
       <h3>Science tech ROI</h3>
-      <div class="opt-note">Each science tech <i>not</i> on your beeline, added and prioritized early. <b>“Pays for itself”</b> = your beeline still finishes no later than the baseline (<b>T${roi.baseCompletion}</b>) despite the detour — its +science income compounds enough to offset the extra cost. Cheap, early science (Divination) compounds longest; deep, late science rarely earns it back.</div>
-      <table class="pt-table roi-table"><thead><tr><th>Science tech</th><th>+sci/turn</th><th>lands</th><th>extra cost</th><th>beeline done</th><th>verdict</th></tr></thead><tbody>${rows}</tbody></table>`;
+      <div class="opt-note">Each science tech <i>not</i> on your beeline, added and prioritized early. <b>“Pays for itself”</b> = your goal still arrives no later than the baseline (<b>T${roi.baseObjective}</b>). Divination/Monasticism use <b>real game data</b> (build time, specialists & city count already averaged in); the rest are mechanic estimates whose income <b>ramps up over a build delay</b> (shown as “online ~T…”), so they pay off only if there's runway left to compound.</div>
+      <table class="pt-table roi-table"><thead><tr><th>Science tech</th><th>+sci/turn</th><th>lands</th><th>extra cost</th><th>goal @</th><th>verdict</th></tr></thead><tbody>${rows}</tbody></table>`;
   });
 }
 

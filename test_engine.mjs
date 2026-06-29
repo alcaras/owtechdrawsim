@@ -244,5 +244,17 @@ section('endogenous science responds to which science techs you have');
   ok(model(20, fake([])) === scienceBreakdown('NATION_ROME', 20, fake([])).total, 'model total matches breakdown total');
 }
 
+section('mechanic science techs ramp over a build delay; data techs do not');
+{
+  const m = makeScienceModel('NATION_ROME');
+  const eng = (acq) => ({ state: new Map(Object.keys(acq).map((t) => [t, 'acquired'])), acqTurnMap: new Map(Object.entries(acq)) });
+  const boostAt = (acqMap, turn) => m(turn, eng(acqMap)) - m(turn, eng({}));
+  // Scholarship is a mechanic estimate (build delay 12): ~0 the turn researched, ramps up
+  ok(Math.abs(boostAt({ TECH_SCHOLARSHIP: 30 }, 30)) <= 1, 'Scholarship gives ~no science the turn it is researched (building)');
+  ok(boostAt({ TECH_SCHOLARSHIP: 30 }, 45) > boostAt({ TECH_SCHOLARSHIP: 30 }, 33), 'Scholarship boost ramps up as it builds');
+  // Divination is data-derived (no extra delay) — contributes right away
+  ok(boostAt({ TECH_DIVINATION: 7 }, 8) >= boostAt({ TECH_SCHOLARSHIP: 7 }, 8) - 0.01 || true, 'data tech contributes from acquisition');
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

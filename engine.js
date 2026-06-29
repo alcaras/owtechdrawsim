@@ -72,6 +72,7 @@ export class DrawEngine {
     this.currentResearch = null;
     this.invested = new Map();       // techId -> science poured in (persists across passes)
     this.acquiredOrder = [];         // [{id, turn, science}] in completion order
+    this.acqTurnMap = new Map();     // techId -> turn acquired (0 for starting techs)
     this.log = [];
 
     // state machine
@@ -111,6 +112,7 @@ export class DrawEngine {
     // phase 2: acquire starting techs, removing them from the hand if they were drawn
     for (const id of this._startingTechs) {
       this.state.set(id, 'acquired');
+      this.acqTurnMap.set(id, 0);
       const i = this.hand.indexOf(id);
       if (i >= 0) this.hand.splice(i, 1);
     }
@@ -290,6 +292,7 @@ export class DrawEngine {
     this.overflow += this.investedIn(id) - cost;
     this.invested.set(id, cost);
     this.state.set(id, 'acquired');
+    this.acqTurnMap.set(id, this.turn);
     this.acquiredOrder.push({ id, turn: this.turn, science: cost });
     this._log('complete', `✓ ${this.get(id).name} researched (${cost} science${id.includes('BONUS') ? '' : ''}).`);
     this._discardHand(id);          // discard the rest of the hand
@@ -314,7 +317,7 @@ export class DrawEngine {
       scholar: this.scholar, oracleBuiltTurn: this.oracleBuiltTurn,
       turn: this.turn, totalScience: this.totalScience, overflow: this.overflow,
       redrawUsedThisTurn: this.redrawUsedThisTurn, currentResearch: this.currentResearch,
-      invested: this.invested, acquiredOrder: this.acquiredOrder,
+      invested: this.invested, acquiredOrder: this.acquiredOrder, acqTurnMap: this.acqTurnMap,
       log: this.log, state: this.state, hand: this.hand,
     });
   }
