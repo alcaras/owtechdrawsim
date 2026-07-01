@@ -148,6 +148,21 @@ section('scholar redraw: once per turn, only when enabled');
   ok(on.canRedraw() === true, 'redraw available again next turn');
 }
 
+section('scholar redraw fills the hand even when it must reshuffle (Assyria)');
+{
+  // Assyria opens with a tiny draw pile, so a redraw dries the deck and must
+  // reshuffle the just-discarded cards back in to refill. Regression: the
+  // exclusion of discarded cards used to leave the hand short after reshuffle.
+  const start = ND.startingTechs['NATION_ASSYRIA'] || [];
+  for (const seed of [1, 7, 42, 99]) {
+    const e = new DrawEngine({ techs: TD.techs, bonusTechs: TD.bonusTechs });
+    e.start({ nation: 'NATION_ASSYRIA', startingTechs: start, seed, scholar: true });
+    const hs = e.handSize();
+    e.redraw();
+    ok(e.hand.length === hs, `redraw refills to ${hs} after reshuffle (seed ${seed}), got ${e.hand.length}`);
+  }
+}
+
 section('completion deals a fresh hand and acquires the tech');
 {
   const e = mk({ seed: 9 });

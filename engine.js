@@ -158,9 +158,10 @@ export class DrawEngine {
   // Pick one eligible tech at random (uniform). Honors a slot-level exclusion set
   // and the non-trashable restriction. Reshuffles the passed pile once if dry.
   _drawOne(exclude, includeTrashable) {
-    let pool = this._eligible().filter(
-      (id) => !exclude.has(id) && (includeTrashable || !this.isBonus(id))
+    const filt = (ex) => this._eligible().filter(
+      (id) => !ex.has(id) && (includeTrashable || !this.isBonus(id))
     );
+    let pool = filt(exclude);
     if (pool.length === 0) {
       // clearTechsPassed(): recoverable cards return to the deck, then retry once.
       let reshuffled = false;
@@ -169,9 +170,11 @@ export class DrawEngine {
       }
       if (reshuffled) {
         this._log('reshuffle', 'Deck exhausted — reshuffling passed techs.');
-        pool = this._eligible().filter(
-          (id) => !exclude.has(id) && (includeTrashable || !this.isBonus(id))
-        );
+        pool = filt(exclude);
+        // If the reshuffle only brought back the just-discarded cards (e.g. a
+        // Scholar redraw with a nearly-dry deck), drop the exclusion so the hand
+        // still fills rather than stopping short.
+        if (pool.length === 0) pool = filt(new Set());
       }
     }
     if (pool.length === 0) return null;
