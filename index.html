@@ -65,6 +65,22 @@
           <button id="nextBtn" class="next-btn" title="Advance a single turn (for juggling carry science across techs)">+1 turn</button>
         </div>
       </section>
+
+      <!-- draw / discard / trashed piles — "what's coming" -->
+      <section class="piles">
+        <details class="pile-wrap" id="pileDraw" open>
+          <summary>Draw pile <span class="pile-count" id="drawCount">0</span><span class="pile-sub">next up</span></summary>
+          <div class="pile-body" id="drawList"></div>
+        </details>
+        <details class="pile-wrap" id="pileDiscard" open>
+          <summary>Discard <span class="pile-count discard" id="discardCount">0</span><span class="pile-sub">passed — reshuffles back</span></summary>
+          <div class="pile-body" id="discardList"></div>
+        </details>
+        <details class="pile-wrap" id="pileTrashed" open>
+          <summary>Trashed <span class="pile-count lost-count" id="trashedCount">0</span><span class="pile-sub">gone for good</span></summary>
+          <div class="pile-body" id="trashedList"></div>
+        </details>
+      </section>
     </main>
 
     <!-- history + acquired -->
@@ -79,19 +95,6 @@
           <span id="acqSci" class="acq-meta"></span>
           <span id="acqLaws" class="acq-meta acq-laws"></span></summary>
         <ol id="acquired" class="acquired"></ol>
-      </details>
-
-      <details class="pile-wrap" id="pileDraw" open>
-        <summary>Draw pile <span class="pile-count" id="drawCount">0</span></summary>
-        <div class="pile-body" id="drawList"></div>
-      </details>
-      <details class="pile-wrap" id="pileDiscard" open>
-        <summary>Discard <span class="pile-count discard" id="discardCount">0</span><span class="pile-sub">passed — reshuffles back</span></summary>
-        <div class="pile-body" id="discardList"></div>
-      </details>
-      <details class="pile-wrap" id="pileTrashed">
-        <summary>Trashed <span class="pile-count lost-count" id="trashedCount">0</span><span class="pile-sub">bonus cards — gone for good</span></summary>
-        <div class="pile-body" id="trashedList"></div>
       </details>
     </aside>
   </div>

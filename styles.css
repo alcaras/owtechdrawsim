@@ -119,7 +119,7 @@ body {
 .rb-ov { color: #8a5a12; margin: 0 1px; }
 .carry-tag { font-size: 12px; font-weight: 700; color: #8a5a12; background: #f6e2c2; border: 1px solid #d9b483; border-radius: 20px; padding: 2px 9px; white-space: nowrap; }
 
-.hand-wrap { flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.hand-wrap { flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 .hand-label { font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: var(--ink-soft); font-weight: 700; }
 .hand-hint { text-transform: none; letter-spacing: 0; font-weight: 400; font-style: italic; opacity: .8; }
 .hand { margin-bottom: 6px; }
@@ -223,6 +223,13 @@ body {
 .acq-sci img { width: 13px; height: 13px; }
 
 /* ---------------- piles ---------------- */
+/* piles live in the board's whitespace as side-by-side panels so you can
+   see "what's coming" and manage the stack at a glance */
+.piles { flex: 1 1 auto; min-height: 160px; display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 14px; align-items: stretch; }
+.piles .pile-wrap { border: 1px solid var(--line); border-top: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.5); display: flex; flex-direction: column; min-height: 0; }
+.piles .pile-wrap summary { padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.piles .pile-body { max-height: none; flex: 1 1 auto; min-height: 0; padding-top: 10px; }
+
 .pile-wrap { border-top: 1px solid var(--line); }
 .pile-wrap summary { padding: 10px 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; }
 .pile-count { background: var(--gold); color: #fff; border-radius: 20px; padding: 1px 8px; font-size: 12px; }
@@ -339,6 +346,8 @@ body {
   .oracle-btn, .restart-btn, .plan-btn, .hist-btn { padding: 6px 9px; font-size: 13px; }
   .oracle-plus { display: none; }
   .board { padding: 12px; gap: 12px; }
+  .piles { grid-template-columns: 1fr; min-height: 0; }
+  .piles .pile-body { max-height: 30vh; }
   .hand { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .card { min-height: 0; padding: 11px 11px 13px; gap: 6px; }
   .card-icon { width: 38px; height: 38px; }
